@@ -1,0 +1,46 @@
+FROM debian:latest
+
+ARG USERNAME=dev
+ARG UID=1000
+ARG GID=$UID
+
+RUN apt update && \
+    apt upgrade
+
+RUN apt update && apt install -y locales && \
+    sed -i 's/^# *\(en_US.UTF-8\)/\1/' /etc/locale.gen && \
+    locale-gen && \
+    update-locale LANG=en_US.UTF-8
+
+ENV LANG=en_US.UTF-8 \
+    LANGUAGE=en_US:en \
+    LC_ALL=en_US.UTF-8
+
+RUN apt install -y \
+    sudo \
+    bash \
+    bash-completion \
+    git
+
+# Create user with sudo permissions
+RUN groupadd -g $GID $USERNAME && \
+    useradd -m -u $UID -g $GID -s /bin/bash $USERNAME && \
+    usermod -aG sudo $USERNAME && \
+    echo "%sudo ALL=(ALL:ALL) NOPASSWD: ALL" >> /etc/sudoers
+
+USER $USERNAME
+
+RUN sudo apt install -y \
+    build-essential \
+    gdb \
+    valgrind \
+    clang-format \
+    clang-tidy \
+    python3 \
+    pipx
+
+RUN pipx ensurepath
+RUN pipx install cpplint && \
+    pipx install gcovr
+
+CMD ["bash"]

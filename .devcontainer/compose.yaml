@@ -1,0 +1,7 @@
+services:
+    devcontainer:
+        build:
+            dockerfile: containerfile
+        volumes:
+            - ../:/workspace
+        entrypoint: tail -f /dev/null

@@ -1,0 +1,27 @@
+name: Build
+
+on:
+  workflow_call:
+
+jobs:
+  dev:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Make Development
+        run: |
+          make dev
+
+  prod:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Make Production
+        run: |
+          make prod
