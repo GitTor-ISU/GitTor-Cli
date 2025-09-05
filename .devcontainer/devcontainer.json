@@ -1,0 +1,20 @@
+{
+    "name": "C Dev",
+    "dockerComposeFile": "compose.yaml",
+    "service": "devcontainer",
+    "workspaceFolder": "/workspace",
+    "customizations": {
+        "vscode": {
+            "settings": {
+                "terminal.integrated.shell.linux": "/bin/bash"
+            },
+            "extensions": [
+                "ms-vscode.cpptools-extension-pack",
+                "ms-vscode.makefile-tools",
+                "editorconfig.editorconfig",
+                "xaver.clang-format"
+            ]
+        }
+    },
+    "remoteUser": "dev"
+}

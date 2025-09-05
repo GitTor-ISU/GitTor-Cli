@@ -1,0 +1,26 @@
+{
+    "editor.rulers": [80],
+    "editor.formatOnSave": true,
+    "[c]": {
+        "editor.defaultFormatter": "xaver.clang-format"
+    },
+    "[cpp]": {
+        "editor.defaultFormatter": "xaver.clang-format"
+    },
+    "clang-format.assumeFilename": ".c",
+    "clang-format.fallbackStyle": "Google",
+    "files.associations": {
+        "stdio.h": "c",
+        "unity.h": "c",
+        "unity_internals.h": "c",
+        "system_error": "c",
+        "**/docs/report/*": "jinja"
+    },
+    "C_Cpp.default.defines": [
+        "_GNU_SOURCE"
+    ],
+    "C_Cpp.default.includePath": [
+        "./src",
+        "./test"
+    ]
+}
