@@ -1,11 +1,71 @@
-# Build
+## Build
+
 ```
 make
 ```
+
 To specify which build you want, pass in the arguments `dev` or `prod` like so.
+
 ```
 make dev
 ```
 
-# Execute
+## Execute
+
 The executable can be found at `bin/dev/gittor` or `bin/prod/gittor`.
+
+```
+gittor [-h|--help] <command> [<args>]
+
+Commands:
+    init    Create an empty GitTor repository
+    leech   Clone a GitTor repository into a new directory
+    seed    Share the current state of the repository
+    devs    Manage who can contribute to this repository
+    verify  Verify all commits are from authorized developers
+    config  Get and set GitTor local or global options
+```
+
+### Init
+
+```
+gittor init [-h|--help]
+```
+Initializes a new GitTor repository in the current directory.
+
+### Leech
+
+```
+gittor leech [-h|--help] <magnet>
+```
+Leeching downloads a repository given its magnet link.
+If the provided magnet link is not the most recent for the given repository, the user will be prompted if they want to get the most recent.
+
+### Seed
+
+```
+gittor seed [-h|--help]
+```
+Seed uploads and shares the current state of the repository.
+If the local state is not from the newest magnet link, users will be prompted if they want to get the most recent.
+
+### Devs
+
+```
+gittor devs [-h|--help]
+```
+TODO: The functionality of this could be limited to reading and writing must be done within the configuration file, or this could have sub-commands like: ls, add, rm.
+
+### Verify
+
+```
+gittor verify [-h|--help] [-b|--branch]
+```
+Verifies that all commits on the current branch are signed by authorized developers.
+
+### Config
+
+```
+gittor config [-h|--help] [--global|--local] <key> [<value>]
+```
+Read and write global (user-wide) or local (repository-wide) configurations.
