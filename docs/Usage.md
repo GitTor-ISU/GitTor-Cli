@@ -10,6 +10,16 @@ To specify which build you want, pass in the arguments `dev` or `prod` like so.
 make dev
 ```
 
+All targets are as follows:
+* `default` - Executed when no target is specified and calls `dev` and `prod`
+* `dev` - Creates executable inside `bin/dev/` with debug symbols
+* `prod` - Creates executable inside `bin/dev/` without debug symbols
+* `test` - Creates test logs inside `bin/test/` and outputs the test results
+* `report` - Creates test reports inside `site/`
+* `format` - **DEPRECATED:** Formats code
+* `lint` - Checks for any linting errors
+* `clean` - Deletes all generated files
+
 ## Execute
 
 The executable can be found at `bin/dev/gittor` or `bin/prod/gittor`.
