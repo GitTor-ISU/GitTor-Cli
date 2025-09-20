@@ -195,7 +195,7 @@ test: $(TEST_LOGS)
 		printf "\033[;32mPASS: $$PASS_COUNT, FAIL: $$FAIL_COUNT, IGNORE: $$IGNORE_COUNT\033[;0m\n"; \
 	else \
 		printf "\033[;31mPASS: $$PASS_COUNT, FAIL: $$FAIL_COUNT, IGNORE: $$IGNORE_COUNT\n\n"; \
-		grep -s :FAIL $(TEST_LOGS) || true; \
+		grep -sh :FAIL $(TEST_LOGS) || true; \
 		printf "\033[;0m\n"; \
 		exit 1; \
 	fi

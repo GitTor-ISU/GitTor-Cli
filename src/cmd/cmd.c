@@ -1,0 +1,90 @@
+#include <argp.h>
+#include <stdbool.h>
+#include <stdio.h>
+#include <string.h>
+#include <unistd.h>
+#include "cmd/cmd.h"
+#include "init/init.h"
+
+#define KEY_USAGE 1
+
+static error_t parse_opt(int key, char* arg, struct argp_state* state);
+
+static const char doc[] =
+    "COMMANDS:\n"
+    "\n"
+    "  init    Create an empty GitTor repository\n"
+    "  leech   Clone a GitTor repository into a new directory\n"
+    "  seed    Share the current state of the repository\n"
+    "  devs    Manage who can contribute to this repository\n"
+    "  verify  Verify all commits are from authorized developers\n"
+    "  config  Get and set GitTor local or global configurations\n"
+    "\n"
+    "OPTIONS:"
+    "\v";
+
+static const struct argp_option options[] = {
+    {"path", 'p', "PATH", 0, "The path to the gittor repository", 0},
+    {"help", '?', NULL, 0, "Give this help list", -2},
+    {"usage", KEY_USAGE, NULL, 0, "Give a short usage message", -1},
+    {NULL}};
+
+static struct argp argp = {
+    options, parse_opt, "COMMAND [ARGUMENTS...]", doc, NULL, NULL, NULL};
+
+static bool helped = false;
+static error_t parse_opt(int key, char* arg, struct argp_state* state) {
+    struct global_arguments* args = state->input;
+
+    switch (key) {
+        case 'p':
+            snprintf(args->path, sizeof(args->path), "%s", arg);
+            break;
+
+        case '?':
+            argp_help(&argp, stdout, ARGP_HELP_STD_HELP, state->name);
+            helped = true;
+            break;
+
+        case KEY_USAGE:
+            argp_help(&argp, stdout, ARGP_HELP_STD_USAGE, state->name);
+            helped = true;
+            break;
+
+        case ARGP_KEY_ARG:
+            if (strcmp(arg, "init") == 0) {
+                return gittor_init(state);
+            } else {
+                argp_error(state, "%s is not a valid command", arg);
+                return ESRCH;
+            }
+            break;
+
+        case ARGP_KEY_END:
+            if (state->arg_num == 0 && !helped) {
+                argp_help(&argp, stdout, ARGP_HELP_STD_USAGE, state->name);
+                return EINVAL;
+            }
+            break;
+
+        default:
+            return ARGP_ERR_UNKNOWN;
+    }
+
+    return 0;
+}
+
+extern int cmd_parse(int argc, char** argv) {
+    // Defaults
+    struct global_arguments args;
+
+    if (getcwd(args.path, sizeof(args.path)) == NULL) {
+        perror("getcwd() error");
+        return errno;
+    }
+
+    // Parse command line arguments
+    helped = false;
+    return argp_parse(&argp, argc, argv,
+                      ARGP_IN_ORDER | ARGP_NO_EXIT | ARGP_NO_HELP, NULL, &args);
+}
