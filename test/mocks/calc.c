@@ -1,8 +1,8 @@
 #include <stdlib.h>
 #include "calc/calc.h"
 
-#ifndef MOCK_ADD
+#ifdef MOCK_ADD
 extern int add(int a, int b) {
-    return a - b;
+    return a + b;
 }
 #endif

@@ -10,27 +10,9 @@
     "clang-format.assumeFilename": ".c",
     "clang-format.fallbackStyle": "Google",
     "files.associations": {
-        "stdio.h": "c",
-        "unity.h": "c",
-        "unity_internals.h": "c",
-        "system_error": "c",
         "**/docs/report/*": "jinja",
-        "cstdlib": "c",
-        "array": "c",
-        "string_view": "c",
-        "type_traits": "c",
-        "cmd.h": "c",
-        "init.h": "c",
-        "random": "c",
-        "typeinfo": "c",
-        "unistd.h": "c",
-        "argp.h": "c",
-        "string.h": "c",
-        "errno.h": "c",
-        "tempdir.h": "c",
-        "limits.h": "c",
-        "stddef.h": "c",
-        "utils.h": "c"
+        "*.h": "c",
+        "*.c": "c"
     },
     "C_Cpp.default.defines": [
         "_GNU_SOURCE"
