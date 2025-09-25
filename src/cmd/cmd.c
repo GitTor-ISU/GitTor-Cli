@@ -1,9 +1,9 @@
+#include "cmd/cmd.h"
 #include <argp.h>
 #include <stdbool.h>
 #include <stdio.h>
 #include <string.h>
 #include <unistd.h>
-#include "cmd/cmd.h"
 #include "init/init.h"
 
 #define KEY_USAGE 1
