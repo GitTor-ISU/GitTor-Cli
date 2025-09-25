@@ -1,7 +1,9 @@
 # Compiler settings
 CC := gcc
 CFLAGS := -Wall -Wextra -Werror
-DEGUBFLAGS := -gdwarf-4 -g3 --coverage -O0
+DEV_FLAGS := -gdwarf-4 -g3
+COV_FLAGS := --coverage -O0
+MOCKS := MOCK_ADD
 
 # Directories
 SRC_DIR := src/
@@ -9,8 +11,12 @@ OBJ_DIR := obj/
 OUT_DIR := bin/
 PROD_DIR := prod/
 DEV_DIR := dev/
+COV_DIR := coverage/
 TEST_DIR := test/
 SITE_DIR := site/
+
+# Defines
+TEST_DEFS := $(foreach mock, $(MOCKS), -D$(mock))
 
 # Dependencies
 PKGS :=
@@ -126,6 +132,14 @@ OBJS_NONENTRY_DEV := $(filter-out \
 	), \
 	$(OBJS_DEV) \
 )
+OBJS_COV := $(foreach obj, \
+	$(OBJS_NONENTRY_DEV), \
+	$(patsubst \
+		$(OBJ_DIR)$(DEV_DIR)%.o, \
+		$(OBJ_DIR)$(COV_DIR)%.o, \
+		$(obj) \
+	) \
+)
 OBJS_NONENTRY_TEST := $(filter-out \
 	$(foreach out, \
 		$(OUTS_TEST), \
@@ -146,26 +160,6 @@ TEST_LOGS = $(foreach \
 		%, \
 		%.log, \
 		$(test) \
-	) \
-)
-
-# Coverage files
-GCDAS := $(foreach \
-	obj, \
-	$(OBJS_NONENTRY_DEV), \
-	$(patsubst \
-		%.o, \
-		%.gcda, \
-		$(obj) \
-	) \
-)
-GCNOS := $(foreach \
-	obj, \
-	$(OBJS_NONENTRY_DEV), \
-	$(patsubst \
-		%.o, \
-		%.gcda, \
-		$(obj) \
 	) \
 )
 
@@ -234,25 +228,31 @@ $(OBJ_DIR)$(PROD_DIR)%.o: $(SRC_DIR)%.c $(HEDS)
 $(OUT_DIR)$(DEV_DIR)%: $(OBJ_DIR)$(DEV_DIR)%.o $(OBJS_NONENTRY_DEV)
 	$(call ensure-dir,$@)
 	@printf "make: \033[1;32m$@\033[0m\n"
-	@$(CC) -o $@ $< $(OBJS_NONENTRY_DEV) $(CFLAGS) $(DEGUBFLAGS) $(INCS) $(LIBS)
+	@$(CC) -o $@ $< $(OBJS_NONENTRY_DEV) $(CFLAGS) $(DEV_FLAGS) $(INCS) $(LIBS)
 
 # Development - Compile C source files into object files
 $(OBJ_DIR)$(DEV_DIR)%.o: $(SRC_DIR)%.c $(HEDS)
 	$(call ensure-dir,$@)
 	@printf "make: $@\n"
-	@$(CC) -c -o $@ $< $(CFLAGS) $(DEGUBFLAGS) $(INCS) $(LIBS)
+	@$(CC) -c -o $@ $< $(CFLAGS) $(DEV_FLAGS) $(INCS) $(LIBS)
+
+# Coverage - Compile C source files into object files
+$(OBJ_DIR)$(COV_DIR)%.o: $(SRC_DIR)%.c $(HEDS)
+	$(call ensure-dir,$@)
+	@printf "make: $@\n"
+	@$(CC) -c -o $@ $< $(CFLAGS) $(COV_FLAGS) $(TEST_DEFS) $(INCS) $(LIBS)
 
 # Test - Link objects into executablea
-$(OUT_DIR)$(TEST_DIR)%: $(OBJ_DIR)$(TEST_DIR)%.o $(OBJS_NONENTRY_DEV) $(OBJS_NONENTRY_TEST)
+$(OUT_DIR)$(TEST_DIR)%: $(OBJ_DIR)$(TEST_DIR)%.o $(OBJS_COV) $(OBJS_NONENTRY_TEST)
 	$(call ensure-dir,$@)
 	@printf "make: \033[1;32m$@\033[0m\n"
-	@$(CC) -o $@ $< $(OBJS_NONENTRY_DEV) $(OBJS_NONENTRY_TEST) $(CFLAGS) $(DEGUBFLAGS) $(TEST_INCS) $(LIBS)
+	@$(CC) -o $@ $< $(OBJS_COV) $(OBJS_NONENTRY_TEST) $(CFLAGS) $(COV_FLAGS) $(TEST_INCS) $(TEST_DEFS) $(LIBS)
 
 # Test - Compile C test files into object files
 $(OBJ_DIR)$(TEST_DIR)%.o: $(TEST_DIR)%.c $(TEST_HEDS)
 	$(call ensure-dir,$@)
 	@printf "make: $@\n"
-	@$(CC) -c -o $@ $< $(CFLAGS) $(DEGUBFLAGS) $(TEST_INCS) $(LIBS)
+	@$(CC) -c -o $@ $< $(CFLAGS) $(TEST_INCS) $(TEST_DEFS) $(LIBS)
 
 # Test - Run tests to generate logs
 $(OUT_DIR)$(TEST_DIR)%.log: $(OUT_DIR)$(TEST_DIR)%
@@ -267,7 +267,7 @@ $(OUT_DIR)$(TEST_DIR)%.log: $(OUT_DIR)$(TEST_DIR)%
 	fi
 
 # Report - Generate report
-$(SITE_DIR)index.html: $(GCDAS) $(GCNOS)
+$(SITE_DIR)index.html: $(TEST_LOGS)
 	$(call ensure-dir,$(SITE_DIR))
 	@gcovr \
 		-e $(TEST_DIR) \
@@ -276,12 +276,6 @@ $(SITE_DIR)index.html: $(GCDAS) $(GCNOS)
 		--html --html-nested --html-theme github.dark-green \
 		--html-syntax-highlighting --output $(SITE_DIR)/index.html
 
-# Report - Generate coverage files
-$(OBJ_DIR)%.gcda:
-	@make $(TEST_LOGS)
-$(OBJ_DIR)%.gcno:
-	@make $(TEST_LOGS)
-
 .PHONY: default dev prod test report format lint clean
 
-.PRECIOUS: $(OBJS_PROD) $(OBJS_DEV) $(OBJS_TEST) $(OUTS_TEST)
+.PRECIOUS: $(OBJS_PROD) $(OBJS_DEV) $(OBJS_TEST) $(OUTS_TEST) $(OBJS_COV)
