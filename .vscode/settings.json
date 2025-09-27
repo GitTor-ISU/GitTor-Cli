@@ -12,7 +12,10 @@
     "files.associations": {
         "**/docs/report/*": "jinja",
         "*.h": "c",
-        "*.c": "c"
+        "*.c": "c",
+        "compare": "c",
+        "cstdint": "c",
+        "string": "c"
     },
     "C_Cpp.default.defines": [
         "_GNU_SOURCE"

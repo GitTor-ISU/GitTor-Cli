@@ -228,6 +228,8 @@ report: $(SITE_PATH)index.html
 lint:
 	cpplint --filter=-legal/copyright --root=$(SRC_PATH) $(SRCS)
 	cpplint --filter=-legal/copyright --root=$(INC_PATH) $(HEDS)
+	cpplint --filter=-legal/copyright --root=$(TEST_PATH) $(TEST_SRCS)
+	cpplint --filter=-legal/copyright --root=$(TEST_INC_DIR) $(TEST_HEDS)
 	clang-tidy -header-filter='src/.*' --warnings-as-errors=* $(SRCS) -- $(INCS) $(LIBS)
 
 # Format code

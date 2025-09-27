@@ -5,11 +5,11 @@
     SPDX-License-Identifier: MIT
 ========================================================================= */
 
-#ifndef UNITY_INTERNALS_H
-#define UNITY_INTERNALS_H
+#ifndef UNITY_UNITY_INTERNALS_H_
+#define UNITY_UNITY_INTERNALS_H_
 
 #ifdef UNITY_INCLUDE_CONFIG_H
-#include "unity_config.h"
+#include "unity/unity_config.h"
 #endif
 
 #ifndef UNITY_EXCLUDE_SETJMP_H
@@ -76,9 +76,11 @@
 /* NTDDI_WIN10_FE is equal to Windows 10 SDK 2104 */
 #if defined(_MSC_VER) && \
     ((!defined(NTDDI_WIN10_FE)) || WDK_NTDDI_VERSION < NTDDI_WIN10_FE)
-/* Based on tests and: */
-/* https://docs.microsoft.com/en-us/cpp/c-language/noreturn?view=msvc-170 */
-/* https://en.cppreference.com/w/c/language/_Noreturn */
+/**
+ * Based on tests and:
+ * https://docs.microsoft.com/en-us/cpp/c-language/noreturn?view=msvc-170
+ * https://en.cppreference.com/w/c/language/_Noreturn
+ */
 #define UNITY_NORETURN _Noreturn
 #else /* Using newer Windows SDK or not MSVC compiler */
 #if defined(__GNUC__)
@@ -90,9 +92,12 @@
 #endif
 #endif
 #elif defined(__STDC_VERSION__) && __STDC_VERSION__ >= 202311L
-/* Since C23, the keyword _Noreturn has been replaced by the attribute noreturn,
- * based on: */
-/* https://en.cppreference.com/w/c/language/attributes/noreturn */
+/**
+ * Since C23, the keyword _Noreturn has been replaced by the attribute noreturn,
+ *
+ * based on:
+ * https://en.cppreference.com/w/c/language/attributes/noreturn
+ */
 #define UNITY_NORETURN [[noreturn]]
 #endif
 #endif
@@ -159,23 +164,12 @@
  * Int Support (Define types based on detected sizes)
  *-------------------------------------------------------*/
 
-#if (UNITY_INT_WIDTH == 32)
-typedef unsigned char UNITY_UINT8;
-typedef unsigned short UNITY_UINT16;
-typedef unsigned int UNITY_UINT32;
-typedef signed char UNITY_INT8;
-typedef signed short UNITY_INT16;
-typedef signed int UNITY_INT32;
-#elif (UNITY_INT_WIDTH == 16)
-typedef unsigned char UNITY_UINT8;
-typedef unsigned int UNITY_UINT16;
-typedef unsigned long UNITY_UINT32;
-typedef signed char UNITY_INT8;
-typedef signed int UNITY_INT16;
-typedef signed long UNITY_INT32;
-#else
-#error Invalid UNITY_INT_WIDTH specified! (16 or 32 are supported)
-#endif
+typedef uint8_t UNITY_UINT8;
+typedef uint16_t UNITY_UINT16;
+typedef uint32_t UNITY_UINT32;
+typedef int8_t UNITY_INT8;
+typedef int16_t UNITY_INT16;
+typedef int32_t UNITY_INT32;
 
 /*-------------------------------------------------------
  * 64-bit Support
@@ -193,23 +187,14 @@ typedef signed long UNITY_INT32;
 /* No 64-bit Support */
 typedef UNITY_UINT32 UNITY_UINT;
 typedef UNITY_INT32 UNITY_INT;
-#define UNITY_MAX_NIBBLES (8) /* Maximum number of nibbles in a UNITY_(U)INT \
-                               */
+#define UNITY_MAX_NIBBLES (8)  // Maximum number of nibbles in a UNITY_(U)INT
 #else
 /* 64-bit Support */
-#if (UNITY_LONG_WIDTH == 32)
-typedef unsigned long long UNITY_UINT64;
-typedef signed long long UNITY_INT64;
-#elif (UNITY_LONG_WIDTH == 64)
-typedef unsigned long UNITY_UINT64;
-typedef signed long UNITY_INT64;
-#else
-#error Invalid UNITY_LONG_WIDTH specified! (32 or 64 are supported)
-#endif
+typedef uint64_t UNITY_UINT64;
+typedef int64_t UNITY_INT64;
 typedef UNITY_UINT64 UNITY_UINT;
 typedef UNITY_INT64 UNITY_INT;
-#define UNITY_MAX_NIBBLES (16) /* Maximum number of nibbles in a UNITY_(U)INT \
-                                */
+#define UNITY_MAX_NIBBLES (16)  // Maximum number of nibbles in a UNITY_(U)INT
 #endif
 
 /*-------------------------------------------------------
@@ -226,7 +211,7 @@ typedef UNITY_INT64 UNITY_INT;
 #define UNITY_PTR_TO_INT UNITY_INT16
 #define UNITY_DISPLAY_STYLE_POINTER UNITY_DISPLAY_STYLE_HEX16
 #else
-#error Invalid UNITY_POINTER_WIDTH specified! (16, 32 or 64 are supported)
+#error Invalid UNITY_POINTER_WIDTH specified 16, 32 or 64 are supported!
 #endif
 
 #ifndef UNITY_PTR_ATTRIBUTE
@@ -619,13 +604,13 @@ void UNITY_PRINT_TEST_CONTEXT(void);
  * Test Output
  *-------------------------------------------------------*/
 
-void UnityPrint(const char* string);
+void UnityPrint(const char* str);
 
 #ifdef UNITY_INCLUDE_PRINT_FORMATTED
 void UnityPrintF(const UNITY_LINE_TYPE line, const char* format, ...);
 #endif
 
-void UnityPrintLen(const char* string, const UNITY_UINT32 length);
+void UnityPrintLen(const char* str, const UNITY_UINT32 length);
 void UnityPrintMask(const UNITY_UINT mask, const UNITY_UINT number);
 void UnityPrintNumberByStyle(const UNITY_INT number,
                              const UNITY_DISPLAY_STYLE_T style);
@@ -2163,5 +2148,4 @@ int UnityTestMatches(void);
                              (UNITY_LINE_TYPE)(line), UNITY_FLOAT_IS_NOT_DET)
 #endif
 
-/* End of UNITY_INTERNALS_H */
-#endif
+#endif  // UNITY_UNITY_INTERNALS_H_
