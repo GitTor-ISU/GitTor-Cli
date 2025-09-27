@@ -5,8 +5,8 @@
     SPDX-License-Identifier: MIT
 ========================================================================= */
 
-#ifndef UNITY_FRAMEWORK_H
-#define UNITY_FRAMEWORK_H
+#ifndef UNITY_UNITY_H_
+#define UNITY_UNITY_H_
 #define UNITY
 
 #define UNITY_VERSION_MAJOR 2
@@ -1559,4 +1559,4 @@ void verifyTest(void);
 #ifdef __cplusplus
 }
 #endif
-#endif
+#endif  // UNITY_UNITY_H_

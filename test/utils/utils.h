@@ -29,4 +29,4 @@ extern int tempdir_destroy(char* dir);
  */
 extern bool tempdir_exists(char* dir);
 
-#endif  // UTILS_H_
+#endif  // UTILS_UTILS_H_
