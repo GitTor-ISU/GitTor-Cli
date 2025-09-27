@@ -40,6 +40,7 @@ static error_t parse_opt(int key, char* arg, struct argp_state* state) {
 
     return 0;
 }
+
 extern int gittor_init(struct argp_state* state) {
     // Set defaults arguments
     struct init_arguments args = {.name = NULL};
