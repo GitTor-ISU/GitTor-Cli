@@ -25,23 +25,33 @@ All targets are as follows:
 The executable can be found at `bin/dev/gittor` or `bin/prod/gittor`.
 
 ```
-gittor [-h|--help] <command> [<args>]
+Usage: gittor [OPTION...] COMMAND [ARGUMENTS...]
+COMMANDS:
 
-Commands:
-    init    Create an empty GitTor repository
-    leech   Clone a GitTor repository into a new directory
-    seed    Share the current state of the repository
-    devs    Manage who can contribute to this repository
-    verify  Verify all commits are from authorized developers
-    config  Get and set GitTor local or global options
+  init    Create an empty GitTor repository
+  leech   Clone a GitTor repository into a new directory
+  seed    Share the current state of the repository
+  devs    Manage who can contribute to this repository
+  verify  Verify all commits are from authorized developers
+  config  Get and set GitTor local or global configurations
+
+OPTIONS:
+
+  -p, --path=PATH            The path to the gittor repository
+  -?, --help                 Give this help list
+      --usage                Give a short usage message
 ```
 
 ### Init
 
 ```
-gittor init [-h|--help]
-```
+Usage: gittor init [OPTION...] REPOSITORY
 Initializes a new GitTor repository in the current directory.
+
+  -n, --name=NAME            The name of the repository
+  -?, --help                 Give this help list
+      --usage                Give a short usage message
+```
 
 ### Leech
 

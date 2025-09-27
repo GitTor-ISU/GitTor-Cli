@@ -3,6 +3,7 @@
 
 /**
  * @brief Add two numbers together.
+ * @note Function is purely for testing and can be removed.
  *
  * @param a
  * @param b

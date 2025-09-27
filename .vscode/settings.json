@@ -10,11 +10,12 @@
     "clang-format.assumeFilename": ".c",
     "clang-format.fallbackStyle": "Google",
     "files.associations": {
-        "stdio.h": "c",
-        "unity.h": "c",
-        "unity_internals.h": "c",
-        "system_error": "c",
-        "**/docs/report/*": "jinja"
+        "**/docs/report/*": "jinja",
+        "*.h": "c",
+        "*.c": "c",
+        "compare": "c",
+        "cstdint": "c",
+        "string": "c"
     },
     "C_Cpp.default.defines": [
         "_GNU_SOURCE"
