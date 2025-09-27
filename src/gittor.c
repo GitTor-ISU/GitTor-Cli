@@ -1,11 +1,11 @@
-#include <math.h>
 #include <stdio.h>
-#include "calc/calc.h"
+#include "cmd/cmd.h"
 
-int main(int argc __attribute__((unused)),
-         char** argv __attribute__((unused))) {
-    printf("Hello, World\n");
-    printf("1 + 2 = %d\n", add(1, 2));
-    printf("pi = %f\n", M_PI);
-    return 0;
+int main(int argc, char** argv) {
+    // Ensure line buffering
+    setvbuf(stdout, (char*)NULL, _IOLBF, 0);
+    setvbuf(stderr, (char*)NULL, _IOLBF, 0);
+
+    // Parse the command line arguments and call sub-function
+    return cmd_parse(argc, argv);
 }
