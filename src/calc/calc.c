@@ -1,5 +1,5 @@
-#include "calc/calc.h"
 #include <stdlib.h>
+#include "calc/calc.h"
 
 #ifndef MOCK_ADD
 extern int add(int a, int b) {
