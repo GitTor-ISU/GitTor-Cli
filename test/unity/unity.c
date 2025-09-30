@@ -5,7 +5,7 @@
     SPDX-License-Identifier: MIT
 ========================================================================= */
 
-#include "unity.h"
+#include "unity/unity.h"
 
 #ifndef UNITY_PROGMEM
 #define UNITY_PROGMEM
@@ -99,22 +99,19 @@ static const char UNITY_PROGMEM UnityStrDetail2Name[] =
 /*-----------------------------------------------*/
 /* Local helper function to print characters. */
 static void UnityPrintChar(const char* pch) {
-    /* printable characters plus CR & LF are printed */
     if ((*pch <= 126) && (*pch >= 32)) {
+        /* printable characters plus CR & LF are printed */
         UNITY_OUTPUT_CHAR(*pch);
-    }
-    /* write escaped carriage returns */
-    else if (*pch == 13) {
+    } else if (*pch == 13) {
+        /* write escaped carriage returns */
         UNITY_OUTPUT_CHAR('\\');
         UNITY_OUTPUT_CHAR('r');
-    }
-    /* write escaped line feeds */
-    else if (*pch == 10) {
+    } else if (*pch == 10) {
+        /* write escaped line feeds */
         UNITY_OUTPUT_CHAR('\\');
         UNITY_OUTPUT_CHAR('n');
-    }
-    /* unprintable characters are shown as codes */
-    else {
+    } else {
+        /* unprintable characters are shown as codes */
         UNITY_OUTPUT_CHAR('\\');
         UNITY_OUTPUT_CHAR('x');
         UnityPrintNumberHex((UNITY_UINT)*pch, 2);
@@ -124,8 +121,8 @@ static void UnityPrintChar(const char* pch) {
 /*-----------------------------------------------*/
 /* Local helper function to print ANSI escape strings e.g. "\033[42m". */
 #ifdef UNITY_OUTPUT_COLOR
-static UNITY_UINT UnityPrintAnsiEscapeString(const char* string) {
-    const char* pch = string;
+static UNITY_UINT UnityPrintAnsiEscapeString(const char* str) {
+    const char* pch = str;
     UNITY_UINT count = 0;
 
     while (*pch && (*pch != 'm')) {
@@ -141,8 +138,8 @@ static UNITY_UINT UnityPrintAnsiEscapeString(const char* string) {
 #endif
 
 /*-----------------------------------------------*/
-void UnityPrint(const char* string) {
-    const char* pch = string;
+void UnityPrint(const char* str) {
+    const char* pch = str;
 
     if (pch != NULL) {
         while (*pch) {
@@ -159,27 +156,24 @@ void UnityPrint(const char* string) {
     }
 }
 /*-----------------------------------------------*/
-void UnityPrintLen(const char* string, const UNITY_UINT32 length) {
-    const char* pch = string;
+void UnityPrintLen(const char* str, const UNITY_UINT32 length) {
+    const char* pch = str;
 
     if (pch != NULL) {
-        while (*pch && ((UNITY_UINT32)(pch - string) < length)) {
-            /* printable characters plus CR & LF are printed */
+        while (*pch && ((UNITY_UINT32)(pch - str) < length)) {
             if ((*pch <= 126) && (*pch >= 32)) {
+                /* printable characters plus CR & LF are printed */
                 UNITY_OUTPUT_CHAR(*pch);
-            }
-            /* write escaped carriage returns */
-            else if (*pch == 13) {
+            } else if (*pch == 13) {
+                /* write escaped carriage returns */
                 UNITY_OUTPUT_CHAR('\\');
                 UNITY_OUTPUT_CHAR('r');
-            }
-            /* write escaped line feeds */
-            else if (*pch == 10) {
+            } else if (*pch == 10) {
+                /* write escaped line feeds */
                 UNITY_OUTPUT_CHAR('\\');
                 UNITY_OUTPUT_CHAR('n');
-            }
-            /* unprintable characters are shown as codes */
-            else {
+            } else {
+                /* unprintable characters are shown as codes */
                 UNITY_OUTPUT_CHAR('\\');
                 UNITY_OUTPUT_CHAR('x');
                 UnityPrintNumberHex((UNITY_UINT)*pch, 2);
@@ -194,23 +188,20 @@ void UnityPrintNumberByStyle(const UNITY_INT number,
                              const UNITY_DISPLAY_STYLE_T style) {
     if ((style & UNITY_DISPLAY_RANGE_INT) == UNITY_DISPLAY_RANGE_INT) {
         if (style == UNITY_DISPLAY_STYLE_CHAR) {
-            /* printable characters plus CR & LF are printed */
             UNITY_OUTPUT_CHAR('\'');
             if ((number <= 126) && (number >= 32)) {
+                /* printable characters plus CR & LF are printed */
                 UNITY_OUTPUT_CHAR((int)number);
-            }
-            /* write escaped carriage returns */
-            else if (number == 13) {
+            } else if (number == 13) {
+                /* write escaped carriage returns */
                 UNITY_OUTPUT_CHAR('\\');
                 UNITY_OUTPUT_CHAR('r');
-            }
-            /* write escaped line feeds */
-            else if (number == 10) {
+            } else if (number == 10) {
+                /* write escaped line feeds */
                 UNITY_OUTPUT_CHAR('\\');
                 UNITY_OUTPUT_CHAR('n');
-            }
-            /* unprintable characters are shown as codes */
-            else {
+            } else {
+                /* unprintable characters are shown as codes */
                 UNITY_OUTPUT_CHAR('\\');
                 UNITY_OUTPUT_CHAR('x');
                 UnityPrintNumberHex((UNITY_UINT)number, 2);
@@ -701,8 +692,8 @@ void UnityAssertGreaterOrLessOrEqualNumber(const UNITY_INT threshold,
         if ((actual < threshold) && (compare & UNITY_GREATER_THAN)) {
             failed = 1;
         }
-    } else /* UINT or HEX */
-    {
+    } else {
+        /* UINT or HEX */
         if (((UNITY_UINT)actual > (UNITY_UINT)threshold) &&
             (compare & UNITY_SMALLER_THAN)) {
             failed = 1;
@@ -826,9 +817,9 @@ void UnityAssertEqualIntArray(UNITY_INTERNAL_PTR expected,
 
         if (expect_val != actual_val) {
             if ((style & UNITY_DISPLAY_RANGE_UINT) &&
-                (length < (UNITY_INT_WIDTH /
-                           8))) { /* For UINT, remove sign extension (padding
-                                     1's) from signed type casts above */
+                (length < (UNITY_INT_WIDTH / 8))) {
+                /* For UINT, remove sign extension (padding 1's) from signed
+                 * type casts above */
                 UNITY_INT mask = 1;
                 mask = (mask << 8 * length) - 1;
                 expect_val &= mask;
@@ -1078,9 +1069,9 @@ void UnityAssertFloatSpecial(const UNITY_FLOAT actual,
             is_trait = UNITY_IS_NAN(actual) ? 1 : 0;
             break;
 
-        case UNITY_FLOAT_IS_DET: /* A determinate number is non infinite and not
-                                    NaN. */
+        case UNITY_FLOAT_IS_DET:
         case UNITY_FLOAT_IS_NOT_DET:
+            /* A determinate number is non infinite and not NaN. */
             is_trait = !UNITY_IS_INF(actual) && !UNITY_IS_NAN(actual);
             break;
 
@@ -1304,9 +1295,9 @@ void UnityAssertDoubleSpecial(const UNITY_DOUBLE actual,
             is_trait = UNITY_IS_NAN(actual) ? 1 : 0;
             break;
 
-        case UNITY_FLOAT_IS_DET: /* A determinate number is non infinite and not
-                                    NaN. */
+        case UNITY_FLOAT_IS_DET:
         case UNITY_FLOAT_IS_NOT_DET:
+            /* A determinate number is non infinite and not NaN. */
             is_trait = !UNITY_IS_INF(actual) && !UNITY_IS_NAN(actual);
             break;
 
@@ -1519,9 +1510,9 @@ void UnityAssertNumbersArrayWithin(const UNITY_UINT delta,
 
         if (Unity.CurrentTestFailed) {
             if ((style & UNITY_DISPLAY_RANGE_UINT) &&
-                (length < (UNITY_INT_WIDTH /
-                           8))) { /* For UINT, remove sign extension (padding
-                                     1's) from signed type casts above */
+                (length < (UNITY_INT_WIDTH / 8))) {
+                /* For UINT, remove sign extension (padding 1's) from signed
+                 * type casts above */
                 UNITY_INT mask = 1;
                 mask = (mask << 8 * length) - 1;
                 expect_val &= mask;
@@ -1660,8 +1651,9 @@ void UnityAssertEqualStringArray(UNITY_INTERNAL_PTR expected,
                     break;
                 }
             }
-        } else { /* handle case of one pointers being null (if both null, test
-                    should pass) */
+        } else {
+            /* handle case of one pointers being null (if both null, test should
+             * pass) */
             if (expd != act) {
                 Unity.CurrentTestFailed = 1;
             }
@@ -1815,11 +1807,11 @@ enum UnityLengthModifier {
     do {                                                           \
         switch (LENGTH_MOD) {                                      \
             case UNITY_LENGTH_MODIFIER_LONG_LONG: {                \
-                NUMBER = (NUMBER_T)va_arg(VA, long long ARG_T);    \
+                NUMBER = (NUMBER_T)va_arg(VA, int64_t ARG_T);      \
                 break;                                             \
             }                                                      \
             case UNITY_LENGTH_MODIFIER_LONG: {                     \
-                NUMBER = (NUMBER_T)va_arg(VA, long ARG_T);         \
+                NUMBER = (NUMBER_T)va_arg(VA, int32_t ARG_T);      \
                 break;                                             \
             }                                                      \
             case UNITY_LENGTH_MODIFIER_NONE:                       \
@@ -1954,8 +1946,8 @@ static void UnityPrintFVA(const char* format, va_list va) {
                             break;
                         }
                         case 's': {
-                            const char* string = va_arg(va, const char*);
-                            UnityPrint(string);
+                            const char* str = va_arg(va, const char*);
+                            UnityPrint(str);
                             break;
                         }
                         case '%': {
@@ -1970,15 +1962,13 @@ static void UnityPrintFVA(const char* format, va_list va) {
                         }
                     }
                 }
-            }
 #ifdef UNITY_OUTPUT_COLOR
-            /* print ANSI escape code */
-            else if ((*pch == 27) && (*(pch + 1) == '[')) {
+                /* print ANSI escape code */
+            } else if ((*pch == 27) && (*(pch + 1) == '[')) {
                 pch += UnityPrintAnsiEscapeString(pch);
                 continue;
-            }
 #endif
-            else if (*pch == '\n') {
+            } else if (*pch == '\n') {
                 UNITY_PRINT_EOL();
             } else {
                 UnityPrintChar(pch);
