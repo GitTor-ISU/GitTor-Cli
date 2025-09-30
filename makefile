@@ -8,28 +8,20 @@ MOCKS := MOCK_ADD
 # Directories
 SRC_DIR := src/
 INC_DIR := src/ # inc/ in some projects
-TEST_DIR := test/
-TEST_INC_DIR := test/
 OBJ_DIR := obj/
 OUT_DIR := bin/
 PROD_DIR := prod/
 DEV_DIR := dev/
 COV_DIR := coverage/
+TEST_DIR := test/
+TEST_INC_DIR := test/
 SITE_DIR := site/
 
 # Paths
 ROOT := $(dir $(realpath $(firstword $(MAKEFILE_LIST))))
-ifneq ($(OS),Windows_NT)
-REL_PATH := $(shell realpath --relative-to=$(CURDIR) $(ROOT))/
-else
-REL_PATH := $(strip $(subst \,/, \
-	$(shell powershell -NoProfile -Command \
-		"Resolve-Path '$(ROOT)' -Relative") \
-))
-endif
 SRC_PATH := $(ROOT)$(SRC_DIR)
 INC_PATH := $(ROOT)$(INC_DIR)
-TEST_PATH := $(ROOT)$(TEST_DIR)
+TEST_SRC_PATH := $(ROOT)$(TEST_DIR)
 TEST_INC_PATH := $(ROOT)$(TEST_INC_DIR)
 OBJ_PATH := $(ROOT)$(OBJ_DIR)
 OUT_PATH := $(ROOT)$(OUT_DIR)
@@ -41,6 +33,14 @@ OUT_PROD_PATH := $(OUT_PATH)$(PROD_DIR)
 OUT_DEV_PATH := $(OUT_PATH)$(DEV_DIR)
 OUT_TEST_PATH := $(OUT_PATH)$(TEST_DIR)
 SITE_PATH := $(ROOT)$(SITE_DIR)
+ifneq ($(OS),Windows_NT)
+REL_PATH := $(shell realpath --relative-to=$(CURDIR) $(ROOT))/
+else
+REL_PATH := $(strip $(subst \,/, \
+	$(shell powershell -NoProfile -Command \
+		"Resolve-Path '$(ROOT)' -Relative") \
+))
+endif
 
 # Defines
 TEST_DEFS := $(foreach mock, $(MOCKS), -D$(mock))
@@ -73,7 +73,7 @@ endif
 # Sources
 ifneq ($(OS),Windows_NT)
 SRCS := $(shell find $(SRC_PATH) -type f -name '*.c')
-TEST_SRCS := $(shell find $(TEST_PATH) -type f -name '*.c')
+TEST_SRCS := $(shell find $(TEST_SRC_PATH) -type f -name '*.c')
 else
 SRCS := $(subst \,/, \
 	$(shell powershell -NoProfile -Command \
@@ -82,7 +82,7 @@ SRCS := $(subst \,/, \
 )
 TEST_SRCS := $(subst \,/, \
 	$(shell powershell -NoProfile -Command \
-	"Get-ChildItem -Path $(TEST_PATH) -Recurse -File -Filter *.c | \
+	"Get-ChildItem -Path $(TEST_SRC_PATH) -Recurse -File -Filter *.c | \
 	Select-Object -ExpandProperty FullName) \
 )
 endif
@@ -98,7 +98,7 @@ ENTS := $(foreach \
 		$(src) \
 	) \
 )
-TESTS := $(foreach \
+TEST_ENTS := $(foreach \
 	src,\
 	$(TEST_SRCS), \
 	$(if \
@@ -116,7 +116,7 @@ ENTS := $(foreach \
 		$(src) \
 	) \
 )
-TESTS := $(foreach \
+TEST_ENTS := $(foreach \
 	src,\
 	$(TEST_SRCS), \
 	$(if \
@@ -150,7 +150,7 @@ OBJS_TEST := $(foreach \
 	src, \
 	$(TEST_SRCS), \
 	$(patsubst \
-		$(TEST_PATH)%.c, \
+		$(TEST_SRC_PATH)%.c, \
 		$(OBJ_TEST_PATH)%.o, \
 		$(src) \
 	) \
@@ -177,9 +177,9 @@ OUTS_DEV := $(foreach \
 )
 OUTS_TEST := $(foreach \
 	test, \
-	$(TESTS), \
+	$(TEST_ENTS), \
 	$(patsubst \
-		$(TEST_PATH)%.c, \
+		$(TEST_SRC_PATH)%.c, \
 		$(OUT_TEST_PATH)%, \
 		$(test) \
 	) \
@@ -333,7 +333,7 @@ report: $(SITE_PATH)index.html
 lint:
 	cpplint --filter=-legal/copyright --root=$(SRC_PATH) $(SRCS)
 	cpplint --filter=-legal/copyright --root=$(INC_PATH) $(HEDS)
-	cpplint --filter=-legal/copyright --root=$(TEST_PATH) $(TEST_SRCS)
+	cpplint --filter=-legal/copyright --root=$(TEST_SRC_PATH) $(TEST_SRCS)
 	cpplint --filter=-legal/copyright --root=$(TEST_INC_DIR) $(TEST_HEDS)
 	clang-tidy -header-filter='src/.*' --warnings-as-errors=* $(SRCS) -- $(INCS) $(LIBS)
 
@@ -393,7 +393,7 @@ $(OUT_TEST_PATH)%: $(OBJ_TEST_PATH)%.o $(OBJS_COV) $(OBJS_TEST_NONENTRY)
 	@$(CC) -o $@ $< $(OBJS_COV) $(OBJS_TEST_NONENTRY) $(CFLAGS) $(COV_FLAGS) $(INCS) $(TEST_INCS) $(TEST_DEFS) $(LIBS)
 
 # Test - Compile C test files into object files
-$(OBJ_TEST_PATH)%.o: $(TEST_PATH)%.c $(HEDS) $(TEST_HEDS)
+$(OBJ_TEST_PATH)%.o: $(TEST_SRC_PATH)%.c $(HEDS) $(TEST_HEDS)
 	$(call ensure-dir,$@)
 	$(call print-file,$(call relpath,$@))
 	@$(CC) -c -o $@ $< $(CFLAGS) $(INCS) $(TEST_INCS) $(TEST_DEFS) $(LIBS)
