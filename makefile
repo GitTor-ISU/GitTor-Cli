@@ -40,6 +40,7 @@ REL_PATH := $(strip $(subst \,/, \
 	$(shell powershell -NoProfile -Command \
 		"Resolve-Path '$(ROOT)' -Relative") \
 ))
+REL_PATH := $(if $(filter %/,$(REL_PATH)),$(REL_PATH),$(REL_PATH)/)
 endif
 
 # Defines
@@ -61,12 +62,12 @@ else
 HEDS := $(subst \,/, \
 	$(shell powershell -NoProfile -Command \
 	"Get-ChildItem -Path $(INC_PATH) -Recurse -File -Filter *.h | \
-	Select-Object -ExpandProperty FullName) \
+	Select-Object -ExpandProperty FullName") \
 )
 TEST_HEDS := $(subst \,/, \
 	$(shell powershell -NoProfile -Command \
 	"Get-ChildItem -Path $(TEST_INC_PATH) -Recurse -File -Filter *.h | \
-	Select-Object -ExpandProperty FullName) \
+	Select-Object -ExpandProperty FullName") \
 )
 endif
 
@@ -78,12 +79,12 @@ else
 SRCS := $(subst \,/, \
 	$(shell powershell -NoProfile -Command \
 		"Get-ChildItem -Path $(SRC_PATH) -Recurse -File -Filter *.c | \
-		Select-Object -ExpandProperty FullName) \
+		Select-Object -ExpandProperty FullName") \
 )
 TEST_SRCS := $(subst \,/, \
 	$(shell powershell -NoProfile -Command \
 	"Get-ChildItem -Path $(TEST_SRC_PATH) -Recurse -File -Filter *.c | \
-	Select-Object -ExpandProperty FullName) \
+	Select-Object -ExpandProperty FullName") \
 )
 endif
 
