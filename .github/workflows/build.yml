@@ -25,3 +25,60 @@ jobs:
       - name: Make Production
         run: |
           make prod
+
+  win:
+    runs-on: windows-latest
+    continue-on-error: true
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Restore Chocolatey Packages
+        id: cache-choco-restore
+        uses: actions/cache/restore@v4
+        with:
+          path: |
+            C:\ProgramData\chocolatey\lib\mingw
+            C:\ProgramData\chocolatey\lib\make
+            C:\ProgramData\chocolatey\lib\pkgconfiglite
+            C:\ProgramData\chocolatey\lib\cmake
+          key: ${{ runner.os }}-cache-choco
+
+      - name: Install Dependencies
+        run: choco install mingw make pkgconfiglite cmake --no-progress --yes
+
+      - name: Save Chocolatey Packages
+        uses: actions/cache/save@v4
+        with:
+          path: |
+            C:\ProgramData\chocolatey\lib\mingw
+            C:\ProgramData\chocolatey\lib\make
+            C:\ProgramData\chocolatey\lib\pkgconfiglite
+            C:\ProgramData\chocolatey\lib\cmake
+          key: ${{ steps.cache-choco-restore.outputs.cache-primary-key }}
+
+      - name: Clone argp-standalone
+        working-directory: ${{ runner.temp }}
+        run: git clone https://github.com/tom42/argp-standalone.git
+
+      - name: Build argp-standalone
+        working-directory: ${{ runner.temp }}\argp-standalone
+        run: |
+          cmake -G "MinGW Makefiles" -DCMAKE_BUILD_TYPE=Release .
+          make -f ./src/Makefile
+
+      - name: Copy argp-standalone
+        run: |
+          mkdir lib
+          copy "$Env:RUNNER_TEMP\argp-standalone\include\argp-standalone\argp.h" ".\src\argp.h"
+          copy "$Env:RUNNER_TEMP\argp-standalone\src\libargp-standalone.a" ".\lib\libargp-standalone.a"
+
+      - name: Make Production
+        run: make prod LIBS='-Llib/ -largp-standalone'
+
+      - name: Upload Executable
+        uses: actions/upload-artifact@v4
+        with:
+          name: gittor-exe
+          path: bin/prod/gittor.exe
