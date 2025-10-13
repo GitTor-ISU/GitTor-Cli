@@ -4,7 +4,12 @@
 #include <string.h>
 #include <unistd.h>
 #include "cmd/cmd.h"
+#include "config/config.h"
+#include "devs/devs.h"
 #include "init/init.h"
+#include "leech/leech.h"
+#include "seed/seed.h"
+#include "verify/verify.h"
 
 #define KEY_USAGE 1
 
@@ -54,6 +59,16 @@ static error_t parse_opt(int key, char* arg, struct argp_state* state) {
         case ARGP_KEY_ARG:
             if (strcmp(arg, "init") == 0) {
                 return gittor_init(state);
+            } else if (strcmp(arg, "leech") == 0) {
+                return gittor_leech(state);
+            } else if (strcmp(arg, "seed") == 0) {
+                return gittor_seed(state);
+            } else if (strcmp(arg, "devs") == 0) {
+                return gittor_devs(state);
+            } else if (strcmp(arg, "verify") == 0) {
+                return gittor_verify(state);
+            } else if (strcmp(arg, "config") == 0) {
+                return gittor_config(state);
             } else {
                 argp_error(state, "%s is not a valid command", arg);
                 return ESRCH;
