@@ -14,7 +14,7 @@ jobs:
       - name: Install Dependencies
         run: |
           sudo apt update
-          sudo apt install -y valgrind
+          sudo apt install -y libtorrent-rasterbar-dev valgrind
 
       - name: Make Test
         run: |

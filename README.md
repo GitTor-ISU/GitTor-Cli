@@ -8,3 +8,4 @@
 - `clang-tidy`
 - `gcovr`
 - `cpplint`
+- `libtorrent-rasterbar-dev`

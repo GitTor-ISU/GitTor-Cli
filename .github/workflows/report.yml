@@ -19,7 +19,7 @@ jobs:
       - name: Install Dependencies
         run: |
           sudo apt update
-          sudo apt install -y valgrind gcovr
+          sudo apt install -y libtorrent-rasterbar-dev valgrind gcovr
 
       - name: Make Report
         run: |

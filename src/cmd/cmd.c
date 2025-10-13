@@ -6,6 +6,7 @@
 #include "cmd/cmd.h"
 #include "config/config.h"
 #include "devs/devs.h"
+#include "examples/tor.h"
 #include "init/init.h"
 #include "leech/leech.h"
 #include "seed/seed.h"
@@ -69,6 +70,9 @@ static error_t parse_opt(int key, char* arg, struct argp_state* state) {
                 return gittor_verify(state);
             } else if (strcmp(arg, "config") == 0) {
                 return gittor_config(state);
+            } else if (strcmp(arg, "tor") == 0) {
+                torrent_example();
+                return 0;
             } else {
                 argp_error(state, "%s is not a valid command", arg);
                 return ESRCH;
