@@ -15,8 +15,7 @@ struct verify_arguments {
 
 static struct argp_option options[] = {
     {"branch", 'b', 0, 0, "Verify commits for a specific branch", 0},
-    {NULL}
-};
+    {NULL}};
 
 static char doc[] =
     "Verifies that all commits on the current branch are "
@@ -25,12 +24,16 @@ static char doc[] =
 static struct argp argp = {options, parse_opt, "", doc, NULL, NULL, NULL};
 
 static error_t parse_opt(int key, char* arg, struct argp_state* state) {
+    // Unused parameter marked to prevent linter warnings
+    (void)arg;
+
     struct verify_arguments* args = state->input;
 
     switch (key) {
         case 'b':
             args->branch = true;
             break;
+
         default:
             return ARGP_ERR_UNKNOWN;
     }
@@ -40,7 +43,7 @@ static error_t parse_opt(int key, char* arg, struct argp_state* state) {
 
 extern int gittor_verify(struct argp_state* state) {
     // Set defaults arguments
-    struct verify_arguments args = { 0 };
+    struct verify_arguments args = {0};
 
     // Change the arguments array for just verify
     int argc = state->argc - state->next + 1;
@@ -58,8 +61,8 @@ extern int gittor_verify(struct argp_state* state) {
     int err = argp_parse(&argp, argc, argv, ARGP_NO_EXIT, &argc, &args);
 
     // Stub output for template
-    printf("%s PATH: %s (verify command not yet implemented)\n",
-           argv[0], args.global->path);
+    printf("%s PATH: %s (verify command not yet implemented)\n", argv[0],
+           args.global->path);
 
     // Rest back to global
     free(argv[0]);

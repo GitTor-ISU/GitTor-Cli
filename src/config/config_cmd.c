@@ -17,41 +17,45 @@ struct config_arguments {
 };
 
 static struct argp_option options[] = {
-    {"global",  'g', 0, 0, "Use global (user-wide) configuration", 0},
-    {"local",   'l', 0, 0, "Use local (repository-wide) configuration", 0},
-    {NULL}
-};
+    {"global", 'g', 0, 0, "Use global (user-wide) configuration", 0},
+    {"local", 'l', 0, 0, "Use local (repository-wide) configuration", 0},
+    {NULL}};
 
 static char doc[] =
     "Read and write global (user-wide) or local "
     "(repository-wide) configurations.";
 
-static struct argp argp = {options, parse_opt, "<key> [<value>]", doc,
-                           NULL,    NULL,      NULL};
+static struct argp argp = {options, parse_opt, "<key> [<value>]", doc, NULL,
+                           NULL,    NULL};
 
 static error_t parse_opt(int key, char* arg, struct argp_state* state) {
+    // Unused parameter marked to prevent linter warnings
+    (void)arg;
+
     struct config_arguments* args = state->input;
+
     switch (key) {
         case 'g':
             args->global_scope = true;
             break;
+
         case 'l':
             args->local_scope = true;
             break;
+
         default:
             return ARGP_ERR_UNKNOWN;
     }
+
     return 0;
 }
 
 extern int gittor_config(struct argp_state* state) {
     // Set defaults arguments
-    struct config_arguments args = {
-        .global_scope = false,
-        .local_scope = false,
-        .key = NULL,
-        .value = NULL
-    };
+    struct config_arguments args = {.global_scope = false,
+                                    .local_scope = false,
+                                    .key = NULL,
+                                    .value = NULL};
 
     // Change the arguments array for just config
     int argc = state->argc - state->next + 1;
@@ -69,8 +73,8 @@ extern int gittor_config(struct argp_state* state) {
     int err = argp_parse(&argp, argc, argv, ARGP_NO_EXIT, &argc, &args);
 
     // Stub output for template
-    printf("%s PATH: %s (config command not yet implemented)\n",
-           argv[0], args.global->path);
+    printf("%s PATH: %s (config command not yet implemented)\n", argv[0],
+           args.global->path);
 
     // Reset back to global
     free(argv[0]);

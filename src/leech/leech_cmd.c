@@ -21,8 +21,9 @@ static struct argp argp = {options, parse_opt, "<magnet>", doc,
                            NULL,    NULL,      NULL};
 
 static error_t parse_opt(int key, char* arg, struct argp_state* state) {
-    struct leech_arguments* args = state->input;
-    size_t arglen;
+    // Unused parameters marked to prevent linter warnings
+    (void)arg;
+    (void)state;
 
     switch (key) {
         default:
@@ -52,8 +53,8 @@ extern int gittor_leech(struct argp_state* state) {
     int err = argp_parse(&argp, argc, argv, ARGP_NO_EXIT, &argc, &args);
 
     // Stub output for template
-    printf("%s PATH: %s (leech command not yet implemented)\n",
-           argv[0], args.global->path);
+    printf("%s PATH: %s (leech command not yet implemented)\n", argv[0],
+           args.global->path);
 
     // Reset back to global
     free(argv[0]);

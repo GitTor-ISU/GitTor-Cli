@@ -19,7 +19,9 @@ static char doc[] = "Manage who can contribute to this repository.";
 static struct argp argp = {options, parse_opt, "", doc, NULL, NULL, NULL};
 
 static error_t parse_opt(int key, char* arg, struct argp_state* state) {
-    struct devs_arguments* args = state->input;
+    // Unused parameters marked to prevent linter warnings
+    (void)arg;
+    (void)state;
 
     switch (key) {
         default:
@@ -31,7 +33,7 @@ static error_t parse_opt(int key, char* arg, struct argp_state* state) {
 
 extern int gittor_devs(struct argp_state* state) {
     // Set defaults for devs arguments
-    struct devs_arguments args = { 0 };
+    struct devs_arguments args = {0};
 
     // Prepare arguments array for just devs
     int argc = state->argc - state->next + 1;
@@ -49,7 +51,8 @@ extern int gittor_devs(struct argp_state* state) {
     int err = argp_parse(&argp, argc, argv, ARGP_NO_EXIT, &argc, &args);
 
     // Stub output for template
-    printf("%s PATH: %s (devs command not yet implemented)\n", argv[0], args.global->path);
+    printf("%s PATH: %s (devs command not yet implemented)\n", argv[0],
+           args.global->path);
 
     // Reset back to global
     free(argv[0]);

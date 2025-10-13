@@ -11,5 +11,4 @@
  */
 extern int gittor_verify(struct argp_state* state);
 
-    // No dynamic allocations to free (yet).
 #endif  // VERIFY_VERIFY_H_

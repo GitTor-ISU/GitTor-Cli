@@ -19,7 +19,9 @@ static char doc[] = "Uploads and shares the current state of the repository.";
 struct argp argp = {options, parse_opt, "", doc, NULL, NULL, NULL};
 
 static error_t parse_opt(int key, char* arg, struct argp_state* state) {
-    struct seed_arguments* args = state->input;
+    // Unused parameters marked to prevent linter warnings
+    (void)arg;
+    (void)state;
 
     switch (key) {
         default:
@@ -31,7 +33,7 @@ static error_t parse_opt(int key, char* arg, struct argp_state* state) {
 
 extern int gittor_seed(struct argp_state* state) {
     // Set defaults arguments
-    struct seed_arguments args = { 0 };
+    struct seed_arguments args = {0};
 
     // Change the arguments array for just seed
     int argc = state->argc - state->next + 1;
@@ -48,9 +50,9 @@ extern int gittor_seed(struct argp_state* state) {
     // Parse arguments
     int err = argp_parse(&argp, argc, argv, ARGP_NO_EXIT, &argc, &args);
 
-    // Stub output for template.
-    printf("%s PATH: %s (seed command not yet implemented)\n",
-           argv[0], args.global->path);
+    // Stub output for template
+    printf("%s PATH: %s (seed command not yet implemented)\n", argv[0],
+           args.global->path);
 
     // Reset back to global
     free(argv[0]);
