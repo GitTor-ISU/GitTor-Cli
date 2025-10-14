@@ -10,8 +10,8 @@ static error_t parse_opt(int key, char* arg, struct argp_state* state);
 
 struct config_arguments {
     struct global_arguments* global;
-    bool global_scope;
-    bool local_scope;
+    bool use_global_scope;
+    bool use_local_scope;
     char* key;
     char* value;
 };
@@ -28,19 +28,18 @@ static char doc[] =
 static struct argp argp = {options, parse_opt, "<key> [<value>]", doc, NULL,
                            NULL,    NULL};
 
-static error_t parse_opt(int key, char* arg, struct argp_state* state) {
-    // Unused parameter marked to prevent linter warnings
-    (void)arg;
-
+static error_t parse_opt(int key,
+                         __attribute__((__unused__)) char* arg,
+                         struct argp_state* state) {
     struct config_arguments* args = state->input;
 
     switch (key) {
         case 'g':
-            args->global_scope = true;
+            args->use_global_scope = true;
             break;
 
         case 'l':
-            args->local_scope = true;
+            args->use_local_scope = true;
             break;
 
         default:
@@ -52,8 +51,8 @@ static error_t parse_opt(int key, char* arg, struct argp_state* state) {
 
 extern int gittor_config(struct argp_state* state) {
     // Set defaults arguments
-    struct config_arguments args = {.global_scope = false,
-                                    .local_scope = false,
+    struct config_arguments args = {.use_global_scope = false,
+                                    .use_local_scope = false,
                                     .key = NULL,
                                     .value = NULL};
 

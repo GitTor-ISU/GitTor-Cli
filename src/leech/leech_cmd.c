@@ -10,21 +10,18 @@ static error_t parse_opt(int key, char* arg, struct argp_state* state);
 
 struct leech_arguments {
     struct global_arguments* global;
-    char* magnet;
+    char uuid[37];
 };
 
 static struct argp_option options[] = {{NULL}};
 
-static char doc[] = "Downloads a repository given its magnet link.";
+static char doc[] = "Downloads a repository given its UUID.";
 
-static struct argp argp = {options, parse_opt, "<magnet>", doc,
-                           NULL,    NULL,      NULL};
+static struct argp argp = {options, parse_opt, "<UUID>", doc, NULL, NULL, NULL};
 
-static error_t parse_opt(int key, char* arg, struct argp_state* state) {
-    // Unused parameters marked to prevent linter warnings
-    (void)arg;
-    (void)state;
-
+static error_t parse_opt(int key,
+                         __attribute__((__unused__)) char* arg,
+                         __attribute__((__unused__)) struct argp_state* state) {
     switch (key) {
         default:
             return ARGP_ERR_UNKNOWN;
@@ -35,7 +32,7 @@ static error_t parse_opt(int key, char* arg, struct argp_state* state) {
 
 extern int gittor_leech(struct argp_state* state) {
     // Set defaults arguments
-    struct leech_arguments args = {.magnet = NULL};
+    struct leech_arguments args = {.uuid = NULL};
 
     // Change the arguments array for just leech
     int argc = state->argc - state->next + 1;

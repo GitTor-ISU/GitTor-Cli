@@ -18,11 +18,9 @@ static char doc[] = "Manage who can contribute to this repository.";
 
 static struct argp argp = {options, parse_opt, "", doc, NULL, NULL, NULL};
 
-static error_t parse_opt(int key, char* arg, struct argp_state* state) {
-    // Unused parameters marked to prevent linter warnings
-    (void)arg;
-    (void)state;
-
+static error_t parse_opt(int key,
+                         __attribute__((__unused__)) char* arg,
+                         __attribute__((__unused__)) struct argp_state* state) {
     switch (key) {
         default:
             return ARGP_ERR_UNKNOWN;

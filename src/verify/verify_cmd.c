@@ -23,10 +23,9 @@ static char doc[] =
 
 static struct argp argp = {options, parse_opt, "", doc, NULL, NULL, NULL};
 
-static error_t parse_opt(int key, char* arg, struct argp_state* state) {
-    // Unused parameter marked to prevent linter warnings
-    (void)arg;
-
+static error_t parse_opt(int key,
+                         __attribute__((__unused__)) char* arg,
+                         struct argp_state* state) {
     struct verify_arguments* args = state->input;
 
     switch (key) {

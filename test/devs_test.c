@@ -3,7 +3,7 @@
 #include "unity/unity.h"
 
 static void shouldPass_whenCalledWithNoArgs() {
-    // GIVEN: Just calling gittor config
+    // GIVEN: Just calling gittor devs
     char* argv[] = {"gittor", "devs", NULL};
     int argc = sizeof(argv) / sizeof(*argv) - 1;
 
