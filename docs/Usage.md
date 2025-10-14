@@ -11,14 +11,15 @@ make dev
 ```
 
 All targets are as follows:
-* `default` - Executed when no target is specified and calls `dev` and `prod`
-* `dev` - Creates executable inside `bin/dev/` with debug symbols
-* `prod` - Creates executable inside `bin/dev/` without debug symbols
-* `test` - Creates test logs inside `bin/test/` and outputs the test results
-* `report` - Creates test reports inside `site/`
-* `format` - **DEPRECATED:** Formats code
-* `lint` - Checks for any linting errors
-* `clean` - Deletes all generated files
+
+-   `default` - Executed when no target is specified and calls `dev` and `prod`
+-   `dev` - Creates executable inside `bin/dev/` with debug symbols
+-   `prod` - Creates executable inside `bin/dev/` without debug symbols
+-   `test` - Creates test logs inside `bin/test/` and outputs the test results
+-   `report` - Creates test reports inside `site/`
+-   `format` - **DEPRECATED:** Formats code
+-   `lint` - Checks for any linting errors
+-   `clean` - Deletes all generated files
 
 ## Execute
 
@@ -56,24 +57,27 @@ Initializes a new GitTor repository in the current directory.
 ### Leech
 
 ```
-gittor leech [-h|--help] <magnet>
+gittor leech [-h|--help] <UUID>
 ```
-Leeching downloads a repository given its magnet link.
-If the provided magnet link is not the most recent for the given repository, the user will be prompted if they want to get the most recent.
+
+Leeching downloads a repository given its UUID.
+If the provided UUID is not the most recent for the given repository, the user will be prompted if they want to get the most recent.
 
 ### Seed
 
 ```
 gittor seed [-h|--help]
 ```
+
 Seed uploads and shares the current state of the repository.
-If the local state is not from the newest magnet link, users will be prompted if they want to get the most recent.
+If the local state is not from the newest UUID, users will be prompted if they want to get the most recent.
 
 ### Devs
 
 ```
 gittor devs [-h|--help]
 ```
+
 TODO: The functionality of this could be limited to reading and writing must be done within the configuration file, or this could have sub-commands like: ls, add, rm.
 
 ### Verify
@@ -81,6 +85,7 @@ TODO: The functionality of this could be limited to reading and writing must be 
 ```
 gittor verify [-h|--help] [-b|--branch]
 ```
+
 Verifies that all commits on the current branch are signed by authorized developers.
 
 ### Config
@@ -88,4 +93,5 @@ Verifies that all commits on the current branch are signed by authorized develop
 ```
 gittor config [-h|--help] [--global|--local] <key> [<value>]
 ```
+
 Read and write global (user-wide) or local (repository-wide) configurations.
