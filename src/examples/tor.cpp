@@ -76,7 +76,7 @@ int torrent_example() try {
         "openwebtorrent.com&ws=https%3A%2F%2Fwebtorrent.io%2Ftorrents%2F&xs="
         "https%3A%2F%2Fwebtorrent.io%2Ftorrents%2Fbig-buck-bunny.torrent";
 
-    const std::string dir = "/tmp/tor/";
+    const std::string dir = "tor/";
 
     // load session parameters
     auto session_params = load_file((dir + ".session").c_str());

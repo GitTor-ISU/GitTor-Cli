@@ -9,3 +9,4 @@
 - `gcovr`
 - `cpplint`
 - `libtorrent-rasterbar-dev`
+- `libglib2.0-dev`

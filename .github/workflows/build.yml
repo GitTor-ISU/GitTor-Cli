@@ -11,10 +11,10 @@ jobs:
       - name: Checkout Repository
         uses: actions/checkout@v4
 
-      - name: Install Dependencies
-        run: |
-          sudo apt update
-          sudo apt install -y libtorrent-rasterbar-dev
+      - uses: awalsh128/cache-apt-pkgs-action@latest
+        with:
+          packages: libtorrent-rasterbar-dev libglib2.0-dev valgrind gcovr clang-tidy
+          version: 1.0
 
       - name: Make Development
         run: |
@@ -27,10 +27,10 @@ jobs:
       - name: Checkout Repository
         uses: actions/checkout@v4
 
-      - name: Install Dependencies
-        run: |
-          sudo apt update
-          sudo apt install -y libtorrent-rasterbar-dev
+      - uses: awalsh128/cache-apt-pkgs-action@latest
+        with:
+          packages: libtorrent-rasterbar-dev libglib2.0-dev valgrind gcovr clang-tidy
+          version: 1.0
 
       - name: Make Production
         run: |
@@ -86,7 +86,7 @@ jobs:
         continue-on-error: true
         working-directory: ${{ runner.temp }}\vcpkg
         run: |
-          vcpkg install libtorrent || echo "Warning: install libtorrent failed"
+          vcpkg install libtorrent glib:x64-mingw-static
           ./vcpkg integrate install
 
       - name: Clone argp-standalone
@@ -123,16 +123,32 @@ jobs:
 
       - name: Copy libtorrent
         if: steps.cache-libs.outputs.cache-hit != 'true'
+        shell: pwsh
         run: |
           xcopy "${{ runner.temp }}\vcpkg\installed\x64-windows\include" ".\inc" /E /I /Y
           xcopy "${{ runner.temp }}\libtorrent\include" ".\inc\libtorrent" /E /I /Y
-          copy "${{ runner.temp }}\libtorrent\build\libtorrent-rasterbar.dll.a" ".\lib\libtorrent-rasterbar.dll.a"
-          copy "${{ runner.temp }}\libtorrent\build\libtorrent-rasterbar.dll" ".\lib\libtorrent-rasterbar.dll"
+          Copy-Item "${{ runner.temp }}\libtorrent\build\libtorrent-rasterbar.dll.a" ".\lib\libtorrent-rasterbar.dll.a"
+          Copy-Item "${{ runner.temp }}\libtorrent\build\libtorrent-rasterbar.dll" ".\lib\libtorrent-rasterbar.dll"
+          Copy-Item (Get-Command libgcc_s_seh-1.dll -ErrorAction SilentlyContinue).Source ".\lib\libgcc_s_seh-1.dll"
+          Copy-Item (Get-Command libwinpthread-1.dll -ErrorAction SilentlyContinue).Source ".\lib\libwinpthread-1.dll"
+          Copy-Item (Get-Command libstdc++-6.dll -ErrorAction SilentlyContinue).Source ".\lib\libstdc++-6.dll"
+
+      - name: Copy glib
+        if: steps.cache-libs.outputs.cache-hit != 'true'
+        shell: pwsh
+        run: |
+          xcopy "${{ runner.temp }}\vcpkg\installed\x64-mingw-static\include" ".\inc" /E /I /Y
+          xcopy "${{ runner.temp }}\vcpkg\installed\x64-mingw-static\lib\glib-2.0\include" ".\inc" /E /I /Y
+          xcopy ".\inc\glib-2.0" ".\inc" /E /I /Y
+          xcopy "${{ runner.temp }}\vcpkg\installed\x64-mingw-static\lib" ".\lib" /E /I /Y
 
       - name: Make Production
         run: |
-          make prod LIBS='-Iinc/ -Llib/ -l:libargp-standalone.a -l:libtorrent-rasterbar.dll.a -lws2_32'
+          make prod LIBS='-Iinc/ -Llib/ -largp-standalone -l:libtorrent-rasterbar.dll.a -lws2_32 -mms-bitfields -l:libglib-2.0.a -lintl -latomic -lm -liconv -lws2_32 -lwinmm -lole32 -lshlwapi -luuid -lpcre2-8'
           copy ".\lib\libtorrent-rasterbar.dll" ".\bin\prod\libtorrent-rasterbar.dll"
+          copy ".\lib\libgcc_s_seh-1.dll" ".\bin\prod\libgcc_s_seh-1.dll"
+          copy ".\lib\libwinpthread-1.dll" ".\bin\prod\libwinpthread-1.dll"
+          copy ".\lib\libstdc++-6.dll" ".\bin\prod\libstdc++-6.dll"
 
       - name: Upload Executable
         uses: actions/upload-artifact@v4

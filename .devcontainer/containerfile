@@ -38,7 +38,8 @@ RUN sudo apt install -y \
     clang-tidy \
     python3 \
     pipx \
-    libtorrent-rasterbar-dev
+    libtorrent-rasterbar-dev \
+    libglib2.0-dev
 
 RUN pipx ensurepath
 RUN pipx install cpplint && \

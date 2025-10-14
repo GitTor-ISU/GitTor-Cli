@@ -49,7 +49,7 @@ TEST_DEFS := $(foreach mock, $(MOCKS), -D$(mock))
 
 # Dependencies
 ifneq ($(OS),Windows_NT)
-PKGS := libtorrent-rasterbar
+PKGS := libtorrent-rasterbar glib-2.0
 LIBS := $(if $(PKGS),$(shell pkg-config --cflags --libs $(PKGS)))
 endif
 
@@ -478,7 +478,8 @@ $(SITE_PATH)index.html: $(TEST_LOGS)
 		--root $(ROOT) \
 		--sort uncovered-percent \
 		--html --html-nested --html-theme github.dark-green \
-		--html-syntax-highlighting --output $(SITE_PATH)/index.html
+		--html-syntax-highlighting --output $(SITE_PATH)/index.html \
+		--exclude-throw-branches
 
 .PHONY: clean default dev prod test report lint format
 
