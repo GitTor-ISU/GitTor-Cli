@@ -32,7 +32,7 @@ static error_t parse_opt(int key,
 
 extern int gittor_leech(struct argp_state* state) {
     // Set defaults arguments
-    struct leech_arguments args = {.uuid = NULL};
+    struct leech_arguments args = {0};
 
     // Change the arguments array for just leech
     int argc = state->argc - state->next + 1;
