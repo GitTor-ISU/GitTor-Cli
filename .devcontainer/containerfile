@@ -39,7 +39,8 @@ RUN sudo apt install -y \
     python3 \
     pipx \
     libtorrent-rasterbar-dev \
-    libglib2.0-dev
+    libglib2.0-dev \
+    libgit2-dev
 
 RUN pipx ensurepath
 RUN pipx install cpplint && \

@@ -10,3 +10,4 @@
 - `cpplint`
 - `libtorrent-rasterbar-dev`
 - `libglib2.0-dev`
+- `libgit2-dev`
