@@ -98,7 +98,7 @@ jobs:
         if: steps.cache-libs.outputs.cache-hit != 'true'
         working-directory: ${{ runner.temp }}\argp-standalone
         run: |
-          cmake -G "MinGW Makefiles" -DCMAKE_BUILD_TYPE=Release .
+          cmake -G "MinGW Makefiles" -DCMAKE_BUILD_TYPE=Release -DCMAKE_C_FLAGS="-D__GNU_LIBRARY__" .
           make -f ./src/Makefile
 
       - name: Copy argp-standalone
