@@ -1,5 +1,6 @@
 # Compiler settings
 CC := gcc
+CXX := g++
 CFLAGS := -Wall -Wextra -Werror
 DEV_FLAGS := -gdwarf-4 -g3
 COV_FLAGS := --coverage -O0
@@ -47,8 +48,10 @@ endif
 TEST_DEFS := $(foreach mock, $(MOCKS), -D$(mock))
 
 # Dependencies
-PKGS :=
+ifneq ($(OS),Windows_NT)
+PKGS := libtorrent-rasterbar glib-2.0 libgit2
 LIBS := $(if $(PKGS),$(shell pkg-config --cflags --libs $(PKGS)))
+endif
 
 # Includes
 INCS := -I$(INC_PATH)
@@ -73,17 +76,17 @@ endif
 
 # Sources
 ifneq ($(OS),Windows_NT)
-SRCS := $(shell find $(SRC_PATH) -type f -name '*.c')
-TEST_SRCS := $(shell find $(TEST_SRC_PATH) -type f -name '*.c')
+SRCS := $(shell find $(SRC_PATH) -type f \( -name '*.c' -o -name '*.cpp' \))
+TEST_SRCS := $(shell find $(TEST_SRC_PATH) -type f \( -name '*.c' -o -name '*.cpp' \))
 else
 SRCS := $(subst \,/, \
 	$(shell powershell -NoProfile -Command \
-		"Get-ChildItem -Path $(SRC_PATH) -Recurse -File -Filter *.c | \
+		"Get-ChildItem -Path $(SRC_PATH) -Recurse -File -Include *.c,*.cpp | \
 		Select-Object -ExpandProperty FullName") \
 )
 TEST_SRCS := $(subst \,/, \
 	$(shell powershell -NoProfile -Command \
-	"Get-ChildItem -Path $(TEST_SRC_PATH) -Recurse -File -Filter *.c | \
+	"Get-ChildItem -Path $(TEST_SRC_PATH) -Recurse -File -Include *.c,*.cpp | \
 	Select-Object -ExpandProperty FullName") \
 )
 endif
@@ -95,7 +98,7 @@ ENTS := $(foreach \
 	src,\
 	$(SRCS), \
 	$(if \
-		$(shell gcc -E $(src) $(INCS) $(LIBS) | grep -lP $(ENT_REGEX)), \
+		$(shell $(CXX) -E $(src) $(INCS) $(LIBS) | grep -lP $(ENT_REGEX)), \
 		$(src) \
 	) \
 )
@@ -103,7 +106,7 @@ TEST_ENTS := $(foreach \
 	src,\
 	$(TEST_SRCS), \
 	$(if \
-		$(shell gcc -E $(src) $(INCS) $(TEST_INCS) $(LIBS) | grep -lP $(ENT_REGEX)), \
+		$(shell $(CXX) -E $(src) $(INCS) $(TEST_INCS) $(LIBS) | grep -lP $(ENT_REGEX)), \
 		$(src) \
 	) \
 )
@@ -113,7 +116,7 @@ ENTS := $(foreach \
 	$(SRCS), \
 	$(if \
 		$(shell powershell -NoProfile -Command \
-			"gcc -E $(src) $(INCS) $(LIBS) | Select-String -Pattern $(ENT_REGEX) -CaseSensitive"), \
+			"$(CXX) -E $(src) $(INCS) $(LIBS) | Select-String -Pattern $(ENT_REGEX) -CaseSensitive"), \
 		$(src) \
 	) \
 )
@@ -122,67 +125,97 @@ TEST_ENTS := $(foreach \
 	$(TEST_SRCS), \
 	$(if \
 		$(shell powershell -NoProfile -Command \
-			"gcc -E $(src) $(INCS) $(TEST_INCS) $(LIBS) | Select-String -Pattern $(ENT_REGEX) -CaseSensitive"), \
+			"$(CXX) -E $(src) $(INCS) $(TEST_INCS) $(LIBS) | Select-String -Pattern $(ENT_REGEX) -CaseSensitive"), \
 		$(src) \
 	) \
 )
 endif
 
 # Objects
-OBJS_PROD := $(foreach \
-	src, \
-	$(SRCS), \
-	$(patsubst \
-		$(SRC_PATH)%.c, \
-		$(OBJ_PROD_PATH)%.o, \
-		$(src) \
+OBJS_PROD := $(foreach src,$(SRCS), \
+	$(if $(filter %.c,$(src)),\
+		$(patsubst \
+			$(SRC_PATH)%.c, \
+			$(OBJ_PROD_PATH)%.o, \
+			$(src) \
+		), \
+		$(patsubst \
+			$(SRC_PATH)%.cpp, \
+			$(OBJ_PROD_PATH)%.o, \
+			$(src) \
+		) \
 	) \
 )
-OBJS_DEV := $(foreach \
-	src, \
-	$(SRCS), \
-	$(patsubst \
-		$(SRC_PATH)%.c, \
-		$(OBJ_DEV_PATH)%.o, \
-		$(src) \
+OBJS_DEV := $(foreach src,$(SRCS), \
+	$(if $(filter %.c,$(src)),\
+		$(patsubst \
+			$(SRC_PATH)%.c, \
+			$(OBJ_DEV_PATH)%.o, \
+			$(src) \
+		), \
+		$(patsubst \
+			$(SRC_PATH)%.cpp, \
+			$(OBJ_DEV_PATH)%.o, \
+			$(src) \
+		) \
 	) \
 )
-OBJS_TEST := $(foreach \
-	src, \
-	$(TEST_SRCS), \
-	$(patsubst \
-		$(TEST_SRC_PATH)%.c, \
-		$(OBJ_TEST_PATH)%.o, \
-		$(src) \
+OBJS_TEST := $(foreach src,$(TEST_SRCS), \
+	$(if $(filter %.c,$(src)),\
+		$(patsubst \
+			$(TEST_SRC_PATH)%.c, \
+			$(OBJ_TEST_PATH)%.o, \
+			$(src) \
+		), \
+		$(patsubst \
+			$(TEST_SRC_PATH)%.cpp, \
+			$(OBJ_TEST_PATH)%.o, \
+			$(src) \
+		) \
 	) \
 )
 
 # Executables produced
-OUTS_PROD := $(foreach \
-	ent, \
-	$(ENTS), \
-	$(patsubst \
-		$(SRC_PATH)%.c, \
-		$(OUT_PROD_PATH)%, \
-		$(ent) \
+OUTS_PROD := $(foreach ent,$(ENTS), \
+	$(if $(filter %.c,$(ent)),\
+		$(patsubst \
+			$(SRC_PATH)%.c, \
+			$(OUT_PROD_PATH)%, \
+			$(ent) \
+		), \
+		$(patsubst \
+			$(SRC_PATH)%.cpp, \
+			$(OUT_PROD_PATH)%, \
+			$(ent) \
+		) \
 	) \
 )
-OUTS_DEV := $(foreach \
-	ent, \
-	$(ENTS), \
-	$(patsubst \
-		$(SRC_PATH)%.c, \
-		$(OUT_DEV_PATH)%, \
-		$(ent) \
+OUTS_DEV := $(foreach ent,$(ENTS), \
+	$(if $(filter %.c,$(ent)),\
+		$(patsubst \
+			$(SRC_PATH)%.c, \
+			$(OUT_DEV_PATH)%, \
+			$(ent) \
+		), \
+		$(patsubst \
+			$(SRC_PATH)%.cpp, \
+			$(OUT_DEV_PATH)%, \
+			$(ent) \
+		) \
 	) \
 )
-OUTS_TEST := $(foreach \
-	test, \
-	$(TEST_ENTS), \
-	$(patsubst \
-		$(TEST_SRC_PATH)%.c, \
-		$(OUT_TEST_PATH)%, \
-		$(test) \
+OUTS_TEST := $(foreach test,$(TEST_ENTS), \
+	$(if $(filter %.c,$(test)),\
+		$(patsubst \
+			$(TEST_SRC_PATH)%.c, \
+			$(OUT_TEST_PATH)%, \
+			$(test) \
+		), \
+		$(patsubst \
+			$(TEST_SRC_PATH)%.cpp, \
+			$(OUT_TEST_PATH)%, \
+			$(test) \
+		) \
 	) \
 )
 
@@ -341,7 +374,7 @@ lint:
 # Format code
 format:
 	@printf "make: $(YELLOW)WARNING: 'make format' is DEPRECATED.$(RESET)\n" >&2
-	clang-format -i -style=file -assume-filename=.c $(SRCS) $(HEDS)
+	clang-format -i -style=file $(SRCS) $(HEDS)
 endif
 
 # Remove generated files
@@ -361,7 +394,7 @@ endif
 $(OUT_PROD_PATH)%: $(OBJ_PROD_PATH)%.o $(OBJS_PROD_NONENTRY)
 	$(call ensure-dir,$@)
 	$(call print-exe,$(call relpath,$@))
-	@$(CC) -o $@ $< $(OBJS_PROD_NONENTRY) $(CFLAGS) $(INCS) $(LIBS)
+	@$(CXX) -o $@ $< $(OBJS_PROD_NONENTRY) $(CFLAGS) $(INCS) $(LIBS)
 
 # Production - Compile C source files into object files
 $(OBJ_PROD_PATH)%.o: $(SRC_PATH)%.c $(HEDS)
@@ -369,11 +402,17 @@ $(OBJ_PROD_PATH)%.o: $(SRC_PATH)%.c $(HEDS)
 	$(call print-file,$(call relpath,$@))
 	@$(CC) -c -o $@ $< $(CFLAGS) $(INCS) $(LIBS)
 
+# Production - Compile C source files into object files
+$(OBJ_PROD_PATH)%.o: $(SRC_PATH)%.cpp $(HEDS)
+	$(call ensure-dir,$@)
+	$(call print-file,$(call relpath,$@))
+	@$(CXX) -c -o $@ $< $(CFLAGS) $(INCS) $(LIBS)
+
 # Development - Link objects into executablea
 $(OUT_DEV_PATH)%: $(OBJ_DEV_PATH)%.o $(OBJS_DEV_NONENTRY)
 	$(call ensure-dir,$@)
 	$(call print-exe,$(call relpath,$@))
-	@$(CC) -o $@ $< $(OBJS_DEV_NONENTRY) $(CFLAGS) $(DEV_FLAGS) $(INCS) $(LIBS)
+	@$(CXX) -o $@ $< $(OBJS_DEV_NONENTRY) $(CFLAGS) $(DEV_FLAGS) $(INCS) $(LIBS)
 
 # Development - Compile C source files into object files
 $(OBJ_DEV_PATH)%.o: $(SRC_PATH)%.c $(HEDS)
@@ -381,23 +420,41 @@ $(OBJ_DEV_PATH)%.o: $(SRC_PATH)%.c $(HEDS)
 	$(call print-file,$(call relpath,$@))
 	@$(CC) -c -o $@ $< $(CFLAGS) $(DEV_FLAGS) $(INCS) $(LIBS)
 
+# Development - Compile CPP source files into object files
+$(OBJ_DEV_PATH)%.o: $(SRC_PATH)%.cpp $(HEDS)
+	$(call ensure-dir,$@)
+	$(call print-file,$(call relpath,$@))
+	@$(CXX) -c -o $@ $< $(CFLAGS) $(DEV_FLAGS) $(INCS) $(LIBS)
+
 # Coverage - Compile C source files into object files
 $(OBJ_COV_PATH)%.o: $(SRC_PATH)%.c $(HEDS)
 	$(call ensure-dir,$@)
 	$(call print-file,$(call relpath,$@))
 	@$(CC) -c -o $@ $< $(CFLAGS) $(COV_FLAGS) $(TEST_DEFS) $(INCS) $(LIBS)
 
+# Coverage - Compile CPP source files into object files
+$(OBJ_COV_PATH)%.o: $(SRC_PATH)%.cpp $(HEDS)
+	$(call ensure-dir,$@)
+	$(call print-file,$(call relpath,$@))
+	@$(CXX) -c -o $@ $< $(CFLAGS) $(COV_FLAGS) $(TEST_DEFS) $(INCS) $(LIBS)
+
 # Test - Link objects into executablea
 $(OUT_TEST_PATH)%: $(OBJ_TEST_PATH)%.o $(OBJS_COV) $(OBJS_TEST_NONENTRY)
 	$(call ensure-dir,$@)
 	$(call print-exe,$(call relpath,$@))
-	@$(CC) -o $@ $< $(OBJS_COV) $(OBJS_TEST_NONENTRY) $(CFLAGS) $(COV_FLAGS) $(INCS) $(TEST_INCS) $(TEST_DEFS) $(LIBS)
+	@$(CXX) -o $@ $< $(OBJS_COV) $(OBJS_TEST_NONENTRY) $(CFLAGS) $(COV_FLAGS) $(INCS) $(TEST_INCS) $(TEST_DEFS) $(LIBS)
 
 # Test - Compile C test files into object files
 $(OBJ_TEST_PATH)%.o: $(TEST_SRC_PATH)%.c $(HEDS) $(TEST_HEDS)
 	$(call ensure-dir,$@)
 	$(call print-file,$(call relpath,$@))
 	@$(CC) -c -o $@ $< $(CFLAGS) $(INCS) $(TEST_INCS) $(TEST_DEFS) $(LIBS)
+
+# Test - Compile CPP source files into object files
+$(OBJ_DEV_PATH)%.o: $(SRC_PATH)%.cpp $(HEDS)
+	$(call ensure-dir,$@)
+	$(call print-file,$(call relpath,$@))
+	@$(CXX) -c -o $@ $< $(CFLAGS) $(DEV_FLAGS) $(INCS) $(LIBS)
 
 # Test - Run tests to generate logs
 $(OUT_TEST_PATH)%.log: $(OUT_TEST_PATH)%
@@ -421,7 +478,8 @@ $(SITE_PATH)index.html: $(TEST_LOGS)
 		--root $(ROOT) \
 		--sort uncovered-percent \
 		--html --html-nested --html-theme github.dark-green \
-		--html-syntax-highlighting --output $(SITE_PATH)/index.html
+		--html-syntax-highlighting --output $(SITE_PATH)/index.html \
+		--exclude-throw-branches
 
 .PHONY: clean default dev prod test report lint format
 

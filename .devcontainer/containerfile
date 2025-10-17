@@ -5,9 +5,9 @@ ARG UID=1000
 ARG GID=$UID
 
 RUN apt update && \
-    apt upgrade
+    apt upgrade -y
 
-RUN apt update && apt install -y locales && \
+RUN apt install -y locales && \
     sed -i 's/^# *\(en_US.UTF-8\)/\1/' /etc/locale.gen && \
     locale-gen && \
     update-locale LANG=en_US.UTF-8
@@ -37,7 +37,10 @@ RUN sudo apt install -y \
     clang-format \
     clang-tidy \
     python3 \
-    pipx
+    pipx \
+    libtorrent-rasterbar-dev \
+    libglib2.0-dev \
+    libgit2-dev
 
 RUN pipx ensurepath
 RUN pipx install cpplint && \

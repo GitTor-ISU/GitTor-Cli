@@ -11,6 +11,11 @@ jobs:
       - name: Checkout Repository
         uses: actions/checkout@v4
 
+      - uses: awalsh128/cache-apt-pkgs-action@latest
+        with:
+          packages: libtorrent-rasterbar-dev libglib2.0-dev libgit2-dev valgrind gcovr clang-tidy
+          version: 1.0
+
       - name: Make Development
         run: |
           make dev
@@ -21,6 +26,11 @@ jobs:
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v4
+
+      - uses: awalsh128/cache-apt-pkgs-action@latest
+        with:
+          packages: libtorrent-rasterbar-dev libglib2.0-dev libgit2-dev valgrind gcovr clang-tidy
+          version: 1.0
 
       - name: Make Production
         run: |
@@ -34,51 +44,114 @@ jobs:
       - name: Checkout Repository
         uses: actions/checkout@v4
 
-      - name: Restore Chocolatey Packages
-        id: cache-choco-restore
-        uses: actions/cache/restore@v4
+      - name: Cache Chocolatey Packages
+        uses: actions/cache@v4
         with:
           path: |
             C:\ProgramData\chocolatey\lib\mingw
             C:\ProgramData\chocolatey\lib\make
-            C:\ProgramData\chocolatey\lib\pkgconfiglite
             C:\ProgramData\chocolatey\lib\cmake
           key: ${{ runner.os }}-cache-choco
 
       - name: Install Dependencies
-        run: choco install mingw make pkgconfiglite cmake --no-progress --yes
+        run: choco install mingw make cmake --no-progress --yes
 
-      - name: Save Chocolatey Packages
-        uses: actions/cache/save@v4
+      - name: Make Libraries Directory
+        run: |
+          mkdir inc
+          mkdir lib
+
+      - name: Cache Libraries
+        id: cache-libs
+        uses: actions/cache@v4
         with:
           path: |
-            C:\ProgramData\chocolatey\lib\mingw
-            C:\ProgramData\chocolatey\lib\make
-            C:\ProgramData\chocolatey\lib\pkgconfiglite
-            C:\ProgramData\chocolatey\lib\cmake
-          key: ${{ steps.cache-choco-restore.outputs.cache-primary-key }}
+            lib
+            inc
+          key: ${{ runner.os }}-cache-libraries
+
+      - name: Clone vcpkg
+        if: steps.cache-libs.outputs.cache-hit != 'true'
+        working-directory: ${{ runner.temp }}
+        run: git clone https://github.com/microsoft/vcpkg.git
+
+      - name: Bootstrap vcpkg
+        if: steps.cache-libs.outputs.cache-hit != 'true'
+        working-directory: ${{ runner.temp }}\vcpkg
+        run: |
+          .\bootstrap-vcpkg.bat
+
+      - name: Install Dependencies via vcpkg
+        if: steps.cache-libs.outputs.cache-hit != 'true'
+        continue-on-error: true
+        working-directory: ${{ runner.temp }}\vcpkg
+        run: |
+          vcpkg install libtorrent glib:x64-mingw-static libgit2:x64-mingw-static
+          ./vcpkg integrate install
 
       - name: Clone argp-standalone
+        if: steps.cache-libs.outputs.cache-hit != 'true'
         working-directory: ${{ runner.temp }}
         run: git clone https://github.com/tom42/argp-standalone.git
 
       - name: Build argp-standalone
+        if: steps.cache-libs.outputs.cache-hit != 'true'
         working-directory: ${{ runner.temp }}\argp-standalone
         run: |
           cmake -G "MinGW Makefiles" -DCMAKE_BUILD_TYPE=Release .
           make -f ./src/Makefile
 
       - name: Copy argp-standalone
+        if: steps.cache-libs.outputs.cache-hit != 'true'
         run: |
-          mkdir lib
-          copy "$Env:RUNNER_TEMP\argp-standalone\include\argp-standalone\argp.h" ".\src\argp.h"
-          copy "$Env:RUNNER_TEMP\argp-standalone\src\libargp-standalone.a" ".\lib\libargp-standalone.a"
+          copy "${{ runner.temp }}\argp-standalone\include\argp-standalone\argp.h" ".\inc\argp.h"
+          copy "${{ runner.temp }}\argp-standalone\src\libargp-standalone.a" ".\lib\libargp-standalone.a"
+
+      - name: Clone libtorrent
+        if: steps.cache-libs.outputs.cache-hit != 'true'
+        working-directory: ${{ runner.temp }}
+        run: git clone --recurse-submodules https://github.com/arvidn/libtorrent.git
+
+      - name: Build libtorrent
+        if: steps.cache-libs.outputs.cache-hit != 'true'
+        working-directory: ${{ runner.temp }}\libtorrent
+        run: |
+          mkdir build
+          cd build
+          cmake -G "MinGW Makefiles" -DCMAKE_BUILD_TYPE=Release -DCMAKE_TOOLCHAIN_FILE=${{ runner.temp }}\vcpkg\scripts\buildsystems\vcpkg.cmake ..
+          make
+
+      - name: Copy libtorrent
+        if: steps.cache-libs.outputs.cache-hit != 'true'
+        shell: pwsh
+        run: |
+          xcopy "${{ runner.temp }}\vcpkg\installed\x64-windows\include" ".\inc" /E /I /Y
+          xcopy "${{ runner.temp }}\libtorrent\include" ".\inc\libtorrent" /E /I /Y
+          Copy-Item "${{ runner.temp }}\libtorrent\build\libtorrent-rasterbar.dll.a" ".\lib\libtorrent-rasterbar.dll.a"
+          Copy-Item "${{ runner.temp }}\libtorrent\build\libtorrent-rasterbar.dll" ".\lib\libtorrent-rasterbar.dll"
+          Copy-Item (Get-Command libgcc_s_seh-1.dll -ErrorAction SilentlyContinue).Source ".\lib\libgcc_s_seh-1.dll"
+          Copy-Item (Get-Command libwinpthread-1.dll -ErrorAction SilentlyContinue).Source ".\lib\libwinpthread-1.dll"
+          Copy-Item (Get-Command libstdc++-6.dll -ErrorAction SilentlyContinue).Source ".\lib\libstdc++-6.dll"
+
+      - name: Copy glib and libgit
+        if: steps.cache-libs.outputs.cache-hit != 'true'
+        shell: pwsh
+        run: |
+          xcopy "${{ runner.temp }}\vcpkg\installed\x64-mingw-static\include" ".\inc" /E /I /Y
+          xcopy "${{ runner.temp }}\vcpkg\installed\x64-mingw-static\lib\glib-2.0\include" ".\inc" /E /I /Y
+          xcopy ".\inc\glib-2.0" ".\inc" /E /I /Y
+          xcopy "${{ runner.temp }}\vcpkg\installed\x64-mingw-static\lib" ".\lib" /E /I /Y
 
       - name: Make Production
-        run: make prod LIBS='-Llib/ -largp-standalone'
+        run: |
+          make prod LIBS='-Iinc/ -Llib/ -largp-standalone -l:libtorrent-rasterbar.dll.a -mms-bitfields -l:libglib-2.0.a -lgit2 -lwinhttp -lrpcrt4 -lcrypt32 -lhttp_parser -lsecur32 -lpcre -lzlib -lintl -latomic -lm -liconv -lwinmm -lole32 -lshlwapi -luuid -lpcre2-8 -lws2_32'
+          copy ".\lib\libtorrent-rasterbar.dll" ".\bin\prod\libtorrent-rasterbar.dll"
+          copy ".\lib\libgcc_s_seh-1.dll" ".\bin\prod\libgcc_s_seh-1.dll"
+          copy ".\lib\libwinpthread-1.dll" ".\bin\prod\libwinpthread-1.dll"
+          copy ".\lib\libstdc++-6.dll" ".\bin\prod\libstdc++-6.dll"
 
       - name: Upload Executable
         uses: actions/upload-artifact@v4
         with:
           name: gittor-exe
-          path: bin/prod/gittor.exe
+          path: bin/prod

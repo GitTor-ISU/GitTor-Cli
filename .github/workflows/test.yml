@@ -11,10 +11,10 @@ jobs:
       - name: Checkout Repository
         uses: actions/checkout@v4
 
-      - name: Install Dependencies
-        run: |
-          sudo apt update
-          sudo apt install -y valgrind
+      - uses: awalsh128/cache-apt-pkgs-action@latest
+        with:
+          packages: libtorrent-rasterbar-dev libglib2.0-dev libgit2-dev valgrind gcovr clang-tidy
+          version: 1.0
 
       - name: Make Test
         run: |
