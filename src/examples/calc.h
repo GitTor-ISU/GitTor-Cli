@@ -1,5 +1,5 @@
-#ifndef CALC_CALC_H_
-#define CALC_CALC_H_
+#ifndef EXAMPLES_CALC_H_
+#define EXAMPLES_CALC_H_
 
 /**
  * @brief Add two numbers together.
@@ -11,4 +11,4 @@
  */
 extern int add(int a, int b);
 
-#endif  // CALC_CALC_H_
+#endif  // EXAMPLES_CALC_H_

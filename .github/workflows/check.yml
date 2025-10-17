@@ -11,11 +11,23 @@ jobs:
       - name: Checkout Repository
         uses: actions/checkout@v4
 
-      - name: Install Dependencies
-        run: |
-          sudo apt update
-          sudo apt install -y clang-tidy
-          pip install cpplint
+      - uses: awalsh128/cache-apt-pkgs-action@latest
+        with:
+          packages: libtorrent-rasterbar-dev libglib2.0-dev libgit2-dev valgrind gcovr clang-tidy
+          version: 1.0
+
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.14"
+
+      - name: Cache pip
+        uses: actions/cache@v3
+        with:
+          path: ~/.cache/pip
+          key: cpplint-cache
+
+      - name: Install cpplint
+        run: pip install cpplint
 
       - name: Lint Check
         run: |

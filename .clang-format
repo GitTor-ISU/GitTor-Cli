@@ -4,9 +4,12 @@ ColumnLimit: 80
 SortIncludes: true
 IncludeBlocks: Merge
 IncludeCategories:
-  - Regex: '^<.*>'
+  - Regex: '^<[^/]*>$'
     Priority: 1
     SortPriority: 0
-  - Regex: '^".*"'
+  - Regex: '^<.*/.*>$'
     Priority: 2
+    SortPriority: 0
+  - Regex: '^".*"$'
+    Priority: 3
     SortPriority: 0
