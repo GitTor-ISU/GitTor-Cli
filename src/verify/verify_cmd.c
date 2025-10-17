@@ -27,11 +27,18 @@ static error_t parse_opt(int key, char* arg, struct argp_state* state) {
     struct verify_arguments* args = state->input;
 
     switch (key) {
-        case ARGP_KEY_ARG:
-            args->branch_names = realloc(
-                args->branch_names, (args->branch_count + 1) * sizeof(char*));
+        case ARGP_KEY_ARG: {
+            char** tmp =
+                (char**)realloc((void*)args->branch_names,
+                                (args->branch_count + 1) * sizeof(char*));
+            if (!tmp) {
+                return ENOMEM;
+            } else {
+                args->branch_names = tmp;
+            }
             args->branch_names[args->branch_count++] = arg;
             break;
+        }
 
         default:
             return ARGP_ERR_UNKNOWN;
@@ -69,7 +76,7 @@ extern int gittor_verify(struct argp_state* state) {
     state->next += argc - 1;
 
     if (args.branch_names) {
-        free(args.branch_names);
+        free((void*)args.branch_names);
     }
     return err;
 }
