@@ -10,27 +10,27 @@ static error_t parse_opt(int key, char* arg, struct argp_state* state);
 
 struct verify_arguments {
     struct global_arguments* global;
-    bool branch;
+    int branch_count;
+    char** branch_names;
 };
 
-static struct argp_option options[] = {
-    {"branch", 'b', 0, 0, "Verify commits for a specific branch", 0},
-    {NULL}};
+static struct argp_option options[] = {{NULL}};
 
 static char doc[] =
-    "Verifies that all commits on the current branch are "
-    "signed by authorized developers.";
+    "Verifies that all commits on the specified branches (or all branches if "
+    "none specified) are signed by authorized developers.";
 
-static struct argp argp = {options, parse_opt, "", doc, NULL, NULL, NULL};
+static struct argp argp = {options, parse_opt, "[branch...]", doc,
+                           NULL,    NULL,      NULL};
 
-static error_t parse_opt(int key,
-                         __attribute__((__unused__)) char* arg,
-                         struct argp_state* state) {
+static error_t parse_opt(int key, char* arg, struct argp_state* state) {
     struct verify_arguments* args = state->input;
 
     switch (key) {
-        case 'b':
-            args->branch = true;
+        case ARGP_KEY_ARG:
+            args->branch_names = realloc(
+                args->branch_names, (args->branch_count + 1) * sizeof(char*));
+            args->branch_names[args->branch_count++] = arg;
             break;
 
         default:
@@ -68,5 +68,8 @@ extern int gittor_verify(struct argp_state* state) {
     argv[0] = argv0;
     state->next += argc - 1;
 
+    if (args.branch_names) {
+        free(args.branch_names);
+    }
     return err;
 }
