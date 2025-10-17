@@ -14,9 +14,9 @@ static void shouldPass_whenCalledWithNoArgs() {
     TEST_ASSERT_EQUAL(0, err);
 }
 
-static void shouldPass_whenCalledWithBranchFlag() {
-    // GIVEN: Calling gittor verify with --branch flag
-    char* argv[] = {"gittor", "verify", "--branch", NULL};
+static void shouldPass_whenCalledWithBranches() {
+    // GIVEN: Calling gittor verify with positional branch arguments
+    char* argv[] = {"gittor", "verify", "1-branch", "2-branch", NULL};
     int argc = sizeof(argv) / sizeof(*argv) - 1;
 
     // WHEN: Parse arguments
@@ -29,6 +29,6 @@ static void shouldPass_whenCalledWithBranchFlag() {
 int main() {
     UNITY_BEGIN();
     RUN_TEST(shouldPass_whenCalledWithNoArgs);
-    RUN_TEST(shouldPass_whenCalledWithBranchFlag);
+    RUN_TEST(shouldPass_whenCalledWithBranches);
     return UNITY_END();
 }

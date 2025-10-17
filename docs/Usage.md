@@ -83,10 +83,13 @@ TODO: The functionality of this could be limited to reading and writing must be 
 ### Verify
 
 ```
-gittor verify [-h|--help] [-b|--branch]
+gittor verify [-h|--help] [branch...]
 ```
 
-Verifies that all commits on the current branch are signed by authorized developers.
+Verifies that all commits are signed by authorized developers.
+
+-   Without arguments, verifies commits on every branch.
+-   When one or more branch names are specified, verifies commits only on those branches.
 
 ### Config
 

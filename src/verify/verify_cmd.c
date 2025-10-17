@@ -1,4 +1,5 @@
 #include <assert.h>
+#include <glib.h>
 #include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -10,28 +11,26 @@ static error_t parse_opt(int key, char* arg, struct argp_state* state);
 
 struct verify_arguments {
     struct global_arguments* global;
-    bool branch;
+    GPtrArray* branch_names;
 };
 
-static struct argp_option options[] = {
-    {"branch", 'b', 0, 0, "Verify commits for a specific branch", 0},
-    {NULL}};
+static struct argp_option options[] = {{NULL}};
 
 static char doc[] =
-    "Verifies that all commits on the current branch are "
-    "signed by authorized developers.";
+    "Verifies that all commits on the specified branches (or all branches if "
+    "none specified) are signed by authorized developers.";
 
-static struct argp argp = {options, parse_opt, "", doc, NULL, NULL, NULL};
+static struct argp argp = {options, parse_opt, "[branch...]", doc,
+                           NULL,    NULL,      NULL};
 
-static error_t parse_opt(int key,
-                         __attribute__((__unused__)) char* arg,
-                         struct argp_state* state) {
+static error_t parse_opt(int key, char* arg, struct argp_state* state) {
     struct verify_arguments* args = state->input;
 
     switch (key) {
-        case 'b':
-            args->branch = true;
+        case ARGP_KEY_ARG: {
+            g_ptr_array_add(args->branch_names, arg);
             break;
+        }
 
         default:
             return ARGP_ERR_UNKNOWN;
@@ -42,12 +41,12 @@ static error_t parse_opt(int key,
 
 extern int gittor_verify(struct argp_state* state) {
     // Set defaults arguments
-    struct verify_arguments args = {0};
+    struct verify_arguments args = {.global = state->input,
+                                    .branch_names = g_ptr_array_new()};
 
     // Change the arguments array for just verify
     int argc = state->argc - state->next + 1;
     char** argv = &state->argv[state->next - 1];
-    args.global = state->input;
 
     // Change the command name to gittor verify
     const char name[] = "verify";
@@ -68,5 +67,6 @@ extern int gittor_verify(struct argp_state* state) {
     argv[0] = argv0;
     state->next += argc - 1;
 
+    g_ptr_array_free(args.branch_names, true);
     return err;
 }
