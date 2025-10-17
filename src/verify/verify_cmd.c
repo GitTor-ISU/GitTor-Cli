@@ -1,4 +1,5 @@
 #include <assert.h>
+#include <glib.h>
 #include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -10,8 +11,7 @@ static error_t parse_opt(int key, char* arg, struct argp_state* state);
 
 struct verify_arguments {
     struct global_arguments* global;
-    int branch_count;
-    char** branch_names;
+    GPtrArray* branch_names;
 };
 
 static struct argp_option options[] = {{NULL}};
@@ -28,15 +28,7 @@ static error_t parse_opt(int key, char* arg, struct argp_state* state) {
 
     switch (key) {
         case ARGP_KEY_ARG: {
-            char** tmp =
-                (char**)realloc((void*)args->branch_names,
-                                (args->branch_count + 1) * sizeof(char*));
-            if (!tmp) {
-                return ENOMEM;
-            } else {
-                args->branch_names = tmp;
-            }
-            args->branch_names[args->branch_count++] = arg;
+            g_ptr_array_add(args->branch_names, arg);
             break;
         }
 
@@ -49,12 +41,12 @@ static error_t parse_opt(int key, char* arg, struct argp_state* state) {
 
 extern int gittor_verify(struct argp_state* state) {
     // Set defaults arguments
-    struct verify_arguments args = {0};
+    struct verify_arguments args = {.global = state->input,
+                                    .branch_names = g_ptr_array_new()};
 
     // Change the arguments array for just verify
     int argc = state->argc - state->next + 1;
     char** argv = &state->argv[state->next - 1];
-    args.global = state->input;
 
     // Change the command name to gittor verify
     const char name[] = "verify";
@@ -75,8 +67,6 @@ extern int gittor_verify(struct argp_state* state) {
     argv[0] = argv0;
     state->next += argc - 1;
 
-    if (args.branch_names) {
-        free((void*)args.branch_names);
-    }
+    g_ptr_array_free(args.branch_names, true);
     return err;
 }
