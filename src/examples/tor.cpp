@@ -67,14 +67,12 @@ void sighandler(int) {
 
 int torrent_example() try {
     auto magnet_uri =
-        "magnet:?xt=urn:btih:dd8255ecdc7ca55fb0bbf81323d87062db1f6d1c&dn=Big+"
-        "Buck+Bunny&tr=udp%3A%2F%2Fexplodie.org%3A6969&tr=udp%3A%2F%2Ftracker."
-        "coppersurfer.tk%3A6969&tr=udp%3A%2F%2Ftracker.empire-js.us%3A1337&tr="
-        "udp%3A%2F%2Ftracker.leechers-paradise.org%3A6969&tr=udp%3A%2F%"
-        "2Ftracker.opentrackr.org%3A1337&tr=wss%3A%2F%2Ftracker.btorrent.xyz&"
-        "tr=wss%3A%2F%2Ftracker.fastcast.nz&tr=wss%3A%2F%2Ftracker."
-        "openwebtorrent.com&ws=https%3A%2F%2Fwebtorrent.io%2Ftorrents%2F&xs="
-        "https%3A%2F%2Fwebtorrent.io%2Ftorrents%2Fbig-buck-bunny.torrent";
+        "magnet:?xt=urn:btih:0cc30ccd5366088882f1e7a2bb6f55d66e703c8e&xt=urn:"
+        "btmh:"
+        "122070888da130f26beb551d7513c7afaa9a85546ddf75d339bcdadb0151032f0f22&"
+        "dn=.git&tr=http%3A%2F%2Ftracker.renfei.net%3A8080%2Fannounce&tr=udp%"
+        "3A%2F%2Ftracker.opentrackr.org%3A1337%2Fannounce&tr=https%3A%2F%"
+        "2Ftracker.jdx3.org%3A443%2Fannounce";
 
     const std::string dir = "tor/";
 
