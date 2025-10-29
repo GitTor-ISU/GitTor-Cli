@@ -141,6 +141,8 @@ jobs:
           xcopy "${{ runner.temp }}\vcpkg\installed\x64-mingw-static\lib\glib-2.0\include" ".\inc" /E /I /Y
           xcopy ".\inc\glib-2.0" ".\inc" /E /I /Y
           xcopy "${{ runner.temp }}\vcpkg\installed\x64-mingw-static\lib" ".\lib" /E /I /Y
+          Copy-Item "${{ runner.temp }}\vcpkg\installed\x64-mingw-static\tools\glib\gspawn-win64-helper-console.exe" ".\lib\gspawn-win64-helper-console.exe"
+          Copy-Item "${{ runner.temp }}\vcpkg\installed\x64-mingw-static\tools\glib\gspawn-win64-helper.exe" ".\lib\gspawn-win64-helper.exe"
 
       - name: Make Production
         run: |
@@ -149,9 +151,23 @@ jobs:
           copy ".\lib\libgcc_s_seh-1.dll" ".\bin\prod\libgcc_s_seh-1.dll"
           copy ".\lib\libwinpthread-1.dll" ".\bin\prod\libwinpthread-1.dll"
           copy ".\lib\libstdc++-6.dll" ".\bin\prod\libstdc++-6.dll"
+          copy ".\lib\gspawn-win64-helper-console.exe" ".\bin\prod\gspawn-win64-helper-console.exe"
+          copy ".\lib\gspawn-win64-helper.exe" ".\bin\prod\gspawn-win64-helper.exe"
 
       - name: Upload Executable
         uses: actions/upload-artifact@v4
         with:
           name: gittor-exe
           path: bin/prod
+
+      - name: Upload Includes
+        uses: actions/upload-artifact@v4
+        with:
+          name: includes
+          path: inc/
+
+      - name: Upload Libraries
+        uses: actions/upload-artifact@v4
+        with:
+          name: libraries
+          path: lib/
