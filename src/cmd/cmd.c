@@ -13,6 +13,7 @@
 #include "init/init.h"
 #include "leech/leech.h"
 #include "seed/seed.h"
+#include "service/service.h"
 #include "verify/verify.h"
 
 #define KEY_USAGE 1
@@ -22,12 +23,13 @@ static error_t parse_opt(int key, char* arg, struct argp_state* state);
 static const char doc[] =
     "COMMANDS:\n"
     "\n"
-    "  init    Create an empty GitTor repository\n"
-    "  leech   Clone a GitTor repository into a new directory\n"
-    "  seed    Share the current state of the repository\n"
-    "  devs    Manage who can contribute to this repository\n"
-    "  verify  Verify all commits are from authorized developers\n"
-    "  config  Get and set GitTor local or global configurations\n"
+    "  init     Create an empty GitTor repository\n"
+    "  leech    Clone a GitTor repository into a new directory\n"
+    "  seed     Share the current state of the repository\n"
+    "  devs     Manage who can contribute to this repository\n"
+    "  verify   Verify all commits are from authorized developers\n"
+    "  config   Get and set GitTor local or global configurations\n"
+    "  service  Manage the GitTor service\n"
     "\n"
     "OPTIONS:"
     "\v";
@@ -73,6 +75,8 @@ static error_t parse_opt(int key, char* arg, struct argp_state* state) {
                 return gittor_verify(state);
             } else if (strcmp(arg, "config") == 0) {
                 return gittor_config(state);
+            } else if (strcmp(arg, "service") == 0) {
+                return gittor_service(state);
             } else if (strcmp(arg, "tor") == 0) {  // TODO(isaac): remove
                 torrent_example();
                 return 0;

@@ -2,8 +2,8 @@
 #include "examples/ini_parser.h"
 
 static gchar* config_path() {
-    const gchar* home = g_get_home_dir();
-    gchar* config_path = g_build_filename(home, ".gittorconfig", NULL);
+    gchar* config_path =
+        g_build_filename(g_get_user_config_dir(), ".gittorconfig", NULL);
     return config_path;
 }
 

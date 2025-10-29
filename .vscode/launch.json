@@ -2,11 +2,31 @@
     "version": "0.2.0",
     "configurations": [
         {
-            "name": "(gdb) gittor",
+            "name": "(gdb) gittor cli",
             "type": "cppdbg",
             "request": "launch",
             "program": "${workspaceFolder}/bin/dev/gittor",
             "args": [],
+            "stopAtEntry": false,
+            "cwd": "${workspaceFolder}",
+            "environment": [],
+            "externalConsole": false,
+            "MIMode": "gdb",
+            "preLaunchTask": "Make gittor",
+            "setupCommands": [
+                {
+                    "description": "Enable pretty-printing for gdb",
+                    "text": "-enable-pretty-printing",
+                    "ignoreFailures": true
+                }
+            ]
+        },
+        {
+            "name": "(gdb) gittor service",
+            "type": "cppdbg",
+            "request": "launch",
+            "program": "${workspaceFolder}/bin/dev/gittor",
+            "args": ["service", "run"],
             "stopAtEntry": false,
             "cwd": "${workspaceFolder}",
             "environment": [],
