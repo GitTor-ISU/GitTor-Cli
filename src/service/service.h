@@ -16,7 +16,7 @@ extern int gittor_service(struct argp_state* state);
  *
  * @return int error code
  */
-extern int gittor_service_run();
+extern int gittor_service_main();
 
 /**
  * @brief Check if the gittor service is running and if not, start it

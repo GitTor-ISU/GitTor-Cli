@@ -40,7 +40,7 @@ static error_t parse_opt(int key,
             } else if (strcmp(arg, "ping") == 0) {
                 return gittor_service_ping();
             } else if (strcmp(arg, "run") == 0) {  // Hidden command
-                return gittor_service_run();
+                return gittor_service_main();
             } else {
                 argp_error(state, "%s is not a valid command", arg);
                 return ESRCH;
