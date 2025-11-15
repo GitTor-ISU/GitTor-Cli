@@ -4,7 +4,7 @@ CXX := g++
 CFLAGS := -Wall -Wextra -Werror
 DEV_FLAGS := -gdwarf-4 -g3
 COV_FLAGS := --coverage -O0
-MOCKS := MOCK_ADD
+MOCKS := MOCK_ADD MOCK_GITTOR_SERVICE_RUN
 
 # Directories
 SRC_DIR := src/
@@ -435,44 +435,53 @@ $(OBJ_DEV_PATH)%.o: $(SRC_PATH)%.cpp $(HEDS)
 $(OBJ_COV_PATH)%.o: $(SRC_PATH)%.c $(HEDS)
 	$(call ensure-dir,$@)
 	$(call print-file,$(call relpath,$@))
-	@$(CC) -c -o $@ $< $(CFLAGS) $(COV_FLAGS) $(TEST_DEFS) $(INCS) $(LIBS)
+	@$(CC) -c -o $@ $< $(CFLAGS) $(DEV_FLAGS) $(COV_FLAGS) $(TEST_DEFS) $(INCS) $(LIBS)
 
 # Coverage - Compile CPP source files into object files
 $(OBJ_COV_PATH)%.o: $(SRC_PATH)%.cpp $(HEDS)
 	$(call ensure-dir,$@)
 	$(call print-file,$(call relpath,$@))
-	@$(CXX) -c -o $@ $< $(CFLAGS) $(COV_FLAGS) $(TEST_DEFS) $(INCS) $(LIBS)
+	@$(CXX) -c -o $@ $< $(CFLAGS) $(DEV_FLAGS) $(COV_FLAGS) $(TEST_DEFS) $(INCS) $(LIBS)
 
 # Test - Link objects into executablea
 $(OUT_TEST_PATH)%: $(OBJ_TEST_PATH)%.o $(OBJS_COV) $(OBJS_TEST_NONENTRY)
 	$(call ensure-dir,$@)
 	$(call print-exe,$(call relpath,$@))
-	@$(CXX) -o $@ $< $(OBJS_COV) $(OBJS_TEST_NONENTRY) $(CFLAGS) $(COV_FLAGS) $(INCS) $(TEST_INCS) $(TEST_DEFS) $(LIBS)
+	@$(CXX) -o $@ $< $(OBJS_COV) $(OBJS_TEST_NONENTRY) $(CFLAGS) $(DEV_FLAGS) $(COV_FLAGS) $(TEST_DEFS) $(INCS) $(TEST_INCS) $(LIBS)
 
 # Test - Compile C test files into object files
 $(OBJ_TEST_PATH)%.o: $(TEST_SRC_PATH)%.c $(HEDS) $(TEST_HEDS)
 	$(call ensure-dir,$@)
 	$(call print-file,$(call relpath,$@))
-	@$(CC) -c -o $@ $< $(CFLAGS) $(INCS) $(TEST_INCS) $(TEST_DEFS) $(LIBS)
+	@$(CC) -c -o $@ $< $(CFLAGS) $(DEV_FLAGS) $(TEST_DEFS) $(INCS) $(TEST_INCS) $(LIBS)
 
 # Test - Compile CPP source files into object files
 $(OBJ_DEV_PATH)%.o: $(SRC_PATH)%.cpp $(HEDS)
 	$(call ensure-dir,$@)
 	$(call print-file,$(call relpath,$@))
-	@$(CXX) -c -o $@ $< $(CFLAGS) $(DEV_FLAGS) $(INCS) $(LIBS)
+	@$(CXX) -c -o $@ $< $(CFLAGS) $(DEV_FLAGS) $(TEST_DEFS) $(INCS) $(LIBS)
 
 # Test - Run tests to generate logs
 $(OUT_TEST_PATH)%.log: $(OUT_TEST_PATH)%
 	$(call ensure-dir,$@)
 	$(call print-file,$(call relpath,$@))
-	@timeout 5 valgrind -q --leak-check=full --track-origins=yes --error-exitcode=117 $< > $@ 2>&1; \
+	@timeout 10 valgrind \
+		-q \
+		--leak-check=full \
+		--track-origins=yes \
+		--error-exitcode=117 \
+		--suppressions=valgrind.supp \
+		$< > $@ 2>&1; \
 	EXIT_CODE=$$?; \
 	if [ $$EXIT_CODE -eq 117 ]; then \
 		printf "$(RED)Valgrind detected memory errors. Please review $@ for more information$(RESET)\n"; \
+		exit $$EXIT_CODE; \
 	elif [ $$EXIT_CODE -eq 124 ]; then \
 		printf "$(RED)Test timed out after 5s, check for infite loop: $<.$(RESET)\n"; \
+		exit $$EXIT_CODE; \
 	elif [ $$EXIT_CODE -ne 0 ] && [ $$EXIT_CODE -ne 1 ]; then \
 		printf "$(RED)Test failed with exit code $$EXIT_CODE: $<$(RESET)\n"; \
+		exit $$EXIT_CODE; \
 	fi
 
 # Report - Generate report

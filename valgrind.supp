@@ -1,0 +1,12 @@
+{
+    argp_help_leak
+    Memcheck:Leak
+    fun:malloc
+    fun:make_hol
+    fun:argp_hol
+    fun:argp_hol
+    fun:_help
+    fun:__argp_state_help
+    fun:argp_state_help
+    ...
+}

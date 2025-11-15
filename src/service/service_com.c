@@ -19,7 +19,7 @@ static GSocket* s_socket;
 static void connect(GSocket* socket, GError** error) {
     // Get the service port
     int port = gittor_service_get_port(error);
-    if (*error) {
+    if (error && *error) {
         return;
     } else if (port < 0) {
         g_set_error(error, g_quark_from_static_string(__func__), 1,
@@ -59,7 +59,7 @@ static GSocket* get_connection(bool auto_start, GError** error) {
 
     s_socket = g_socket_new(G_SOCKET_FAMILY_IPV4, G_SOCKET_TYPE_STREAM,
                             G_SOCKET_PROTOCOL_TCP, error);
-    if (*error) {
+    if (error && *error) {
         g_object_unref(s_socket);
         s_socket = NULL;
         return NULL;
@@ -80,14 +80,14 @@ static GSocket* get_connection(bool auto_start, GError** error) {
     g_clear_error(error);
 
     // Start the gittor service
-    gittor_service_main(true);
+    gittor_service_run(true);
     g_print("GitTor service started.\n");
 
     // Attempt to connect a second time
     connect(s_socket, error);
 
     // If connection fails again, throw error
-    if (*error) {
+    if (error && *error) {
         g_object_unref(s_socket);
         s_socket = NULL;
         return NULL;
@@ -105,26 +105,26 @@ extern packet_t* gittor_service_send(const packet_t* msg, GError** error) {
 
     // Get connection to the service
     GSocket* socket = get_connection(true, error);
-    if (*error) {
+    if (error && *error) {
         return NULL;
     }
 
     // Send the header
     header_t header = {.magic = MAGIC, .type = msg->type, .len = msg->len};
     g_socket_send(socket, (void*)&header, sizeof(header), NULL, error);
-    if (*error) {
+    if (error && *error) {
         return NULL;
     }
 
     // Send the data
     g_socket_send(socket, (void*)msg->data, msg->len, NULL, error);
-    if (*error) {
+    if (error && *error) {
         return NULL;
     }
 
     // Recieve the header
     g_socket_receive(socket, (void*)&header, sizeof(header), NULL, error);
-    if (*error) {
+    if (error && *error) {
         return NULL;
     }
 
@@ -143,7 +143,7 @@ extern packet_t* gittor_service_send(const packet_t* msg, GError** error) {
 
     // Recieve the data
     g_socket_receive(socket, resp->data, header.len, NULL, error);
-    if (*error) {
+    if (error && *error) {
         free(resp->data);
         free(resp);
         return NULL;
@@ -159,7 +159,7 @@ extern int gittor_service_start() {
 
     if (error) {
         g_clear_error(&error);
-        gittor_service_main(true);
+        gittor_service_run(true);
         g_print("GitTor service started.\n");
     } else {
         g_print("GitTor service already running.\n");
@@ -184,6 +184,11 @@ extern int gittor_service_stop() {
         g_clear_error(&error);
         g_print("GitTor service wasn't running.\n");
     }
+
+    if (G_IS_OBJECT(s_socket)) {
+        g_object_unref(s_socket);
+    }
+    s_socket = NULL;
 
     // While port is greater than 0, wait
     int count = 0;
@@ -222,19 +227,20 @@ extern void gittor_service_disconnect() {
     s_socket = NULL;
 }
 
-extern int gittor_service_status() {
+extern const char* gittor_service_status() {
+    static const char up[] = "up";
+    static const char down[] = "down";
+
     // Try to connect
     GError* error = NULL;
     get_connection(false, &error);
 
     if (error) {
         g_clear_error(&error);
-        g_print("down\n");
-    } else {
-        g_print("up\n");
+        return down;
     }
 
-    return 0;
+    return up;
 }
 
 extern int gittor_service_ping() {

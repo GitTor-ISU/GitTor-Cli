@@ -104,42 +104,15 @@ static gpointer handle_client(gpointer data) {
     return NULL;
 }
 
-extern int gittor_service_main(bool detached) {
+extern int gittor_service_main() {
     // Notify that the service is not up
     GError* error = NULL;
     gittor_service_set_port(-1, &error);
     if (error) {
-        g_printerr("Clear port configuration failed: %s\n", error->message);
+        g_printerr("[GitTor Service] Clear port configuration failed: %s\n",
+                   error->message);
         g_clear_error(&error);
         // No need to throw error, things will still work just not as well
-    }
-
-    // If it is meant to be ran detached, start the seperate process
-    if (detached) {
-        const gchar* argv[] = {g_get_prgname(), "service", "run", NULL};
-        g_spawn_async(NULL, (gchar**)argv, NULL, G_SPAWN_SEARCH_PATH, NULL,
-                      NULL, NULL, &error);
-        if (error) {
-            g_printerr("Failed to start service: %s\n", error->message);
-            g_clear_error(&error);
-            return 1;
-        }
-
-        // While port is invalid, wait
-        int count = 0;
-        while (count < 20) {
-            int port = gittor_service_get_port(&error);
-            if (!error && port > 0) {
-                break;
-            }
-            if (error) {
-                g_clear_error(&error);
-            }
-            g_usleep(100UL * 1000UL);  // 100 ms
-            count++;
-        }
-
-        return 0;
     }
 
     // Create an IPv4 TCP socket
@@ -230,3 +203,45 @@ extern int gittor_service_main(bool detached) {
     g_object_unref(cancellable);
     return 0;
 }
+
+#ifndef MOCK_GITTOR_SERVICE_RUN
+extern int gittor_service_run(bool detached) {
+    if (!detached) {
+        return gittor_service_main();
+    }
+
+    // Notify that the service is not up
+    GError* error = NULL;
+    gittor_service_set_port(-1, &error);
+    if (error) {
+        g_printerr("Clear port configuration failed: %s\n", error->message);
+        g_clear_error(&error);
+        // No need to throw error, things will still work just not as well
+    }
+
+    const gchar* argv[] = {g_get_prgname(), "service", "run", NULL};
+    g_spawn_async(NULL, (gchar**)argv, NULL, G_SPAWN_SEARCH_PATH, NULL, NULL,
+                  NULL, &error);
+    if (error) {
+        g_printerr("Failed to start service: %s\n", error->message);
+        g_clear_error(&error);
+        return 1;
+    }
+
+    // While port is invalid, wait
+    int count = 0;
+    while (count < 20) {
+        int port = gittor_service_get_port(&error);
+        if (!error && port > 0) {
+            break;
+        }
+        if (error) {
+            g_clear_error(&error);
+        }
+        g_usleep(100UL * 1000UL);  // 100 ms
+        count++;
+    }
+
+    return 0;
+}
+#endif

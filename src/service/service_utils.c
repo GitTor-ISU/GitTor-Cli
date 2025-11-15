@@ -11,7 +11,7 @@ extern int gittor_service_get_port(GError** error) {
     g_file_get_contents(path, &content, &length, error);
 
     // Error checking
-    if (*error) {
+    if (error && *error) {
         g_free(content);
         g_free(dir);
         g_free(path);
@@ -62,12 +62,11 @@ extern int gittor_service_get_port(GError** error) {
 extern void gittor_service_set_port(int port, GError** error) {
     // Evalute the port file path
     gchar* dir = g_build_filename(g_get_user_config_dir(), "gittor", NULL);
-    if (!g_file_test(dir, G_FILE_TEST_IS_DIR)) {
-        if (g_mkdir_with_parents(dir, 0700)) {
-            g_set_error(error, g_quark_from_static_string("set-port"), 1,
-                        "Error creating configuration directory '%s'", dir);
-            return;
-        }
+    if (!g_file_test(dir, G_FILE_TEST_IS_DIR) &&
+        g_mkdir_with_parents(dir, 0700)) {
+        g_set_error(error, g_quark_from_static_string("set-port"), 1,
+                    "Error creating configuration directory '%s'", dir);
+        return;
     }
     gchar* path = g_build_filename(dir, "service_port", NULL);
 

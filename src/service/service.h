@@ -27,12 +27,20 @@ typedef struct {
 extern int gittor_service(struct argp_state* state);
 
 /**
- * @brief Main function for the GiTtor service
+ * @brief Main function for the GitTor service.
  *
+ * @return int error code
+ */
+extern int gittor_service_main();
+
+/**
+ * @brief Run the GiTtor service
+ *
+ * @note This does not check if the service is already running
  * @param detached run the GiTtor service in a detached process
  * @return int error code
  */
-extern int gittor_service_main(bool detached);
+extern int gittor_service_run(bool detached);
 
 /**
  * @brief Check if the GiTtor service is running and if not, start it
@@ -56,17 +64,22 @@ extern int gittor_service_stop();
 extern int gittor_service_restart();
 
 /**
- * @brief Print the current gittor status
+ * @brief Print the current GitTor status
  *
- * @return int error code
+ * @return 'up' or 'down'
  */
-extern int gittor_service_status();
+extern const char* gittor_service_status();
 
 /**
  * @brief Disconnect from the GiTtor service if connected
  */
 extern void gittor_service_disconnect();
 
+/**
+ * @brief Send a ping to the GitTor service.
+ *
+ * @return int error code
+ */
 extern int gittor_service_ping();
 
 #endif  // SERVICE_SERVICE_H_
