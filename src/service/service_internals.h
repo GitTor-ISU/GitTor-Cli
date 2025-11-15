@@ -3,23 +3,22 @@
 
 #include <glib.h>
 #include <gio/gio.h>
+#include <service/service.h>
 
-typedef enum __attribute__((packed)) {
-    PING,
-    /// @brief End the current connection
-    END,
-    /// @brief Kill the service
-    KILL,
-} type_e;
+/// @brief Magic value to sign the top of every header
+static const guint64 MAGIC = ((guint64)'g' << 40) | ((guint64)'i' << 32) |
+                             ((guint64)'t' << 24) | ((guint64)'t' << 16) |
+                             ((guint64)'o' << 8) | ((guint64)'r' << 0);
 
 /**
  * @brief Packet that comes before the body
- * @note Body is not always necessary/expected depending on the header contents
+ * @note Body is not always necessary/expected depending on the header
+ * contents
  */
 typedef struct __attribute__((packed)) {
     guint64 magic;
     type_e type;
-    guint32 length;
+    gint64 len;
 } header_t;
 
 /// @brief Data passed to each client connection thread
@@ -28,11 +27,6 @@ typedef struct {
     /// @brief Call from thread to kill the service
     GCancellable* connection_cancellable;
 } client_thread_data_t;
-
-/// @brief Magic value to sign the top of every header
-static const guint64 MAGIC = ((guint64)'g' << 40) | ((guint64)'i' << 32) |
-                             ((guint64)'t' << 24) | ((guint64)'t' << 16) |
-                             ((guint64)'o' << 8) | ((guint64)'r' << 0);
 
 /**
  * @brief Get the currently used port
@@ -46,7 +40,7 @@ extern int gittor_service_get_port(GError** error);
 /**
  * @brief Set the currently used port
  */
-extern void gittor_servic_set_port(int port, GError** error);
+extern void gittor_service_set_port(int port, GError** error);
 
 /**
  * @brief Bind the socket to a port in the range

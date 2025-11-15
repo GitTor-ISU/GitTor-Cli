@@ -16,6 +16,7 @@
 static gpointer handle_client(gpointer data) {
     GSocket* client = ((client_thread_data_t*)data)->client;
     bool run_thread = true;
+    void* buffer = NULL;
 
     while (run_thread) {
         // Parse the header
@@ -25,7 +26,7 @@ static gpointer handle_client(gpointer data) {
 
         // Error handle
         if (error) {
-            g_printerr("[Thread %p] Receive header failed: %s\n",
+            g_printerr("[GitTor Service thread=%p] Receive header failed: %s\n",
                        (void*)g_thread_self(), error->message);
             g_clear_error(&error);
             break;
@@ -34,22 +35,24 @@ static gpointer handle_client(gpointer data) {
         // Check the header signature
         if (header.magic != MAGIC) {
             g_printerr(
-                "[Thread %p] Received header signiture incorrect: got '%" PRIx64
-                "' expected '%" PRIx64 "'\n",
+                "[GitTor Service thread=%p] Received incorrect header "
+                "signiture: got '%" PRIx64 "' expected '%" PRIx64 "'\n",
                 (void*)g_thread_self(), header.magic, MAGIC);
             break;
         }
 
         // Recieve the body
-        void* buffer = NULL;
-        if (header.length > 0) {
-            buffer = malloc(header.length);
-            g_socket_receive(client, buffer, header.length, NULL, &error);
+        free(buffer);
+        buffer = NULL;
+        if (header.len > 0) {
+            buffer = malloc(header.len);
+            g_socket_receive(client, buffer, header.len, NULL, &error);
         }
 
         // Error handle
         if (error) {
-            g_printerr("Receive failed: %s\n", error->message);
+            g_printerr("[GitTor Service thread=%p] Receive failed: %s\n",
+                       (void*)g_thread_self(), error->message);
             g_clear_error(&error);
             break;
         }
@@ -65,41 +68,86 @@ static gpointer handle_client(gpointer data) {
                 run_thread = false;
                 break;
             case PING:
-                g_print("[Thread %p] Received PING '%s', replying...\n",
-                        (void*)g_thread_self(), (char*)buffer);
+                printf("[GitTor Service thread=%p] Recieved: '%s'\n",
+                       (void*)g_thread_self(), (char*)buffer);
                 char ping[256];
-                g_snprintf(ping, sizeof(ping) - 1,
-                           "Reply from pid: %d thread: %p", getpid(),
-                           (void*)g_thread_self());
+                header.len =
+                    g_snprintf(ping, sizeof(ping) - 1, "pid: %d thread: %p",
+                               getpid(), (void*)g_thread_self()) +
+                    1;
                 header.type = PING;
-                header.length = sizeof(ping);
                 g_socket_send(client, (void*)&header, sizeof(header), NULL,
-                              NULL);
-                g_socket_send(client, (void*)ping, sizeof(ping), NULL, NULL);
+                              &error);
+                if (error) {
+                    g_printerr(
+                        "[GitTor Service thread=%p] Reply body failed: %s\n",
+                        (void*)g_thread_self(), error->message);
+                    run_thread = false;
+                    break;
+                }
+
+                g_socket_send(client, (void*)ping, header.len, NULL, &error);
+                if (error) {
+                    g_printerr(
+                        "[GitTor Service thread=%p] Reply body failed: %s\n",
+                        (void*)g_thread_self(), error->message);
+                    run_thread = false;
+                    break;
+                }
                 break;
         }
     }
 
+    free(buffer);
     g_object_unref(client);
     g_free(data);
     return NULL;
 }
 
-extern int gittor_service_main() {
+extern int gittor_service_main(bool detached) {
     // Notify that the service is not up
     GError* error = NULL;
-    gittor_servic_set_port(-1, &error);
+    gittor_service_set_port(-1, &error);
     if (error) {
-        g_printerr("Clear Port Configuration Failed: %s\n", error->message);
+        g_printerr("Clear port configuration failed: %s\n", error->message);
         g_clear_error(&error);
-        // No need to error, things will still work just not as well
+        // No need to throw error, things will still work just not as well
+    }
+
+    // If it is meant to be ran detached, start the seperate process
+    if (detached) {
+        const gchar* argv[] = {g_get_prgname(), "service", "run", NULL};
+        g_spawn_async(NULL, (gchar**)argv, NULL, G_SPAWN_SEARCH_PATH, NULL,
+                      NULL, NULL, &error);
+        if (error) {
+            g_printerr("Failed to start service: %s\n", error->message);
+            g_clear_error(&error);
+            return 1;
+        }
+
+        // While port is invalid, wait
+        int count = 0;
+        while (count < 20) {
+            int port = gittor_service_get_port(&error);
+            if (!error && port > 0) {
+                break;
+            }
+            if (error) {
+                g_clear_error(&error);
+            }
+            g_usleep(100UL * 1000UL);  // 100 ms
+            count++;
+        }
+
+        return 0;
     }
 
     // Create an IPv4 TCP socket
     GSocket* socket = g_socket_new(G_SOCKET_FAMILY_IPV4, G_SOCKET_TYPE_STREAM,
                                    G_SOCKET_PROTOCOL_TCP, &error);
     if (error) {
-        g_printerr("Error Creating Socket: %s\n", error->message);
+        g_printerr("[GitTor Service] Error creating socket: %s\n",
+                   error->message);
         g_clear_error(&error);
         g_object_unref(socket);
         return 1;
@@ -109,7 +157,7 @@ extern int gittor_service_main() {
     GSocketAddress* address = NULL;
     int port = bind_port_in_range(&address, "127.0.0.1", socket, 5000, 6000);
     if (port < 0) {
-        g_printerr("Bind Failed: no valid free ports found\n");
+        g_printerr("[GitTor Service] Bind failed: no valid free ports found\n");
         g_clear_error(&error);
         g_object_unref(socket);
         g_object_unref(address);
@@ -118,7 +166,7 @@ extern int gittor_service_main() {
 
     // Start listening
     if (!g_socket_listen(socket, &error)) {
-        g_printerr("Listen Failed: %s\n", error->message);
+        g_printerr("[GitTor Service] Listen failed: %s\n", error->message);
         g_clear_error(&error);
         g_object_unref(socket);
         g_object_unref(address);
@@ -126,9 +174,10 @@ extern int gittor_service_main() {
     }
 
     // Notify that the service is up on this port
-    gittor_servic_set_port(port, &error);
+    gittor_service_set_port(port, &error);
     if (error) {
-        g_printerr("Set Port Configuration Failed: %s\n", error->message);
+        g_printerr("[GitTor Service] Set port configuration failed: %s\n",
+                   error->message);
         g_clear_error(&error);
         g_object_unref(socket);
         g_object_unref(address);
@@ -136,6 +185,7 @@ extern int gittor_service_main() {
     }
 
     // Establish connections
+    GPtrArray* threads = g_ptr_array_new();
     GCancellable* cancellable = g_cancellable_new();
     while (true) {
         // Accept a new connection
@@ -147,7 +197,7 @@ extern int gittor_service_main() {
         }
 
         if (error) {
-            g_printerr("Accept failed: %s\n", error->message);
+            g_printerr("[GitTor Service] Accept failed: %s\n", error->message);
             g_clear_error(&error);
             continue;
         }
@@ -156,17 +206,25 @@ extern int gittor_service_main() {
         client_thread_data_t* data = g_malloc(sizeof(*data));
         data->client = client;
         data->connection_cancellable = cancellable;
-        g_thread_new("client-handler", handle_client, data);
+        g_ptr_array_add(threads,
+                        g_thread_new("client-handler", handle_client, data));
     }
 
     // Notify that the service is not up
-    gittor_servic_set_port(-1, &error);
+    gittor_service_set_port(-1, &error);
     if (error) {
-        g_printerr("Clear Port Configuration Failed: %s\n", error->message);
+        g_printerr("[GitTor Service] Clear port configuration failed: %s\n",
+                   error->message);
         g_clear_error(&error);
         // No need to error, things will still work just not as well
     }
 
+    // Cleanup all threads
+    for (guint i = 0; i < threads->len; i++) {
+        g_thread_join(g_ptr_array_index(threads, i));
+    }
+
+    g_ptr_array_free(threads, TRUE);
     g_object_unref(socket);
     g_object_unref(address);
     g_object_unref(cancellable);

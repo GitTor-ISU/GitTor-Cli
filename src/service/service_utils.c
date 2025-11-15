@@ -59,7 +59,7 @@ extern int gittor_service_get_port(GError** error) {
     return port;
 }
 
-extern void gittor_servic_set_port(int port, GError** error) {
+extern void gittor_service_set_port(int port, GError** error) {
     // Evalute the port file path
     gchar* dir = g_build_filename(g_get_user_config_dir(), "gittor", NULL);
     if (!g_file_test(dir, G_FILE_TEST_IS_DIR)) {

@@ -1,5 +1,6 @@
 #include <glib.h>
 #include <stdio.h>
+#include <service/service.h>
 #include "cmd/cmd.h"
 
 int main(int argc, char** argv) {
@@ -8,8 +9,17 @@ int main(int argc, char** argv) {
     setvbuf(stderr, (char*)NULL, _IOLBF, 0);
 
     // Set the program name for later use
-    g_set_prgname(g_canonicalize_filename(argv[0], g_get_current_dir()));
+    char* cwd = g_get_current_dir();
+    char* canon = g_canonicalize_filename(argv[0], cwd);
+    g_set_prgname(canon);
 
     // Parse the command line arguments and call sub-function
-    return cmd_parse(argc, argv);
+    int err = cmd_parse(argc, argv);
+
+    // Cleanup any connection to the gittor seeding service
+    gittor_service_disconnect();
+    g_free(cwd);
+    g_free(canon);
+
+    return err;
 }

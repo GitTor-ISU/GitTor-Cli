@@ -20,6 +20,7 @@ static const char doc[] =
     "  start    Ensures the GitTor service is running\n"
     "  stop     Ensures the GitTor service is not running\n"
     "  restart  Stops and starts the GitTor service\n"
+    "  status   Prints the GitTor service status (up, down)\n"
     "\n"
     "OPTIONS:"
     "\v";
@@ -37,10 +38,12 @@ static error_t parse_opt(int key,
                 return gittor_service_stop();
             } else if (strcmp(arg, "restart") == 0) {
                 return gittor_service_restart();
-            } else if (strcmp(arg, "ping") == 0) {
+            } else if (strcmp(arg, "status") == 0) {
+                return gittor_service_status();
+            } else if (strcmp(arg, "ping") == 0) {  // TODO(isaac): remove
                 return gittor_service_ping();
             } else if (strcmp(arg, "run") == 0) {  // Hidden command
-                return gittor_service_main();
+                return gittor_service_main(false);
             } else {
                 argp_error(state, "%s is not a valid command", arg);
                 return ESRCH;
