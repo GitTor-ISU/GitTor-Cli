@@ -70,15 +70,77 @@ extern int gittor_config(struct argp_state* state) {
 
     // Parse arguments
     int err = argp_parse(&argp, argc, argv, ARGP_NO_EXIT, &argc, &args);
+    if (err) {
+        free(argv[0]);
+        argv[0] = argv0;
+        state->next += argc - 1;
+        return err;
+    }
 
-    // Stub output for template
-    printf("%s PATH: %s (config command not yet implemented)\n", argv[0],
-           args.global->path);
+    // Get positional arguments (key and optional value)
+    if (argc < 2) {
+        fprintf(stderr, "Error: Missing key argument.\n");
+        free(argv[0]);
+        argv[0] = argv0;
+        state->next += argc - 1;
+        return ARGP_ERR_UNKNOWN;
+    }
 
-    // Reset back to global
+    args.key = argv[1];
+    if (argc > 2) {
+        args.value = argv[2];
+    }
+
+    // Parse key into group.key
+    char* dot = strchr(args.key, '.');
+    if (!dot) {
+        fprintf(stderr, "Error: Invalid key format. Use 'group.key'.\n");
+        free(argv[0]);
+        argv[0] = argv0;
+        state->next += argc - 1;
+        return ARGP_ERR_UNKNOWN;
+    }
+    char* group = strndup(args.key, dot - args.key);
+    char* key = strdup(dot + 1);
+
+    ConfigScope scope = CONFIG_SCOPE_LOCAL;
+    if (args.use_global_scope && !args.use_local_scope) {
+        scope = CONFIG_SCOPE_GLOBAL;
+    }
+
+    // Read or write the configuration
+    if (args.value) {
+        // Set configuration
+        if (config_set(scope, group, key, args.value) != 0) {
+            fprintf(stderr, "Error: Failed to set configuration.\n");
+            free(argv[0]);
+            argv[0] = argv0;
+            state->next += argc - 1;
+            return ARGP_ERR_UNKNOWN;
+        } else {
+            printf("Configuration set: %s.%s = %s\n", group, key, args.value);
+        }
+    } else {
+        // Get configuration
+        char* value = config_get(group, key, NULL);
+        if (value) {
+            printf("%s\n", value);
+            free(value);
+        } else {
+            fprintf(stderr, "Error: Configuration '%s.%s' not found.\n", group,
+                    key);
+            err = ARGP_ERR_UNKNOWN;
+        }
+    }
+
     free(argv[0]);
     argv[0] = argv0;
     state->next += argc - 1;
-
+    if (group) {
+        free(group);
+    }
+    if (key) {
+        free(key);
+    }
     return err;
 }
