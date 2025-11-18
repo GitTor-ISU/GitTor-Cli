@@ -10,3 +10,4 @@ Checks: >
   -misc-include-cleaner,
   -clang-analyzer-security.insecureAPI.DeprecatedOrUnsafeBufferHandling,
   -concurrency-mt-unsafe,
+  -misc-header-include-cycle,
