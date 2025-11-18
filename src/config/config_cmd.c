@@ -42,6 +42,26 @@ static error_t parse_opt(int key,
             args->use_local_scope = true;
             break;
 
+        case ARGP_KEY_ARG:
+            // Handle positional arguments
+            if (state->arg_num == 0) {
+                args->key = arg;  // key
+            } else if (state->arg_num == 1) {
+                args->value = arg;  // value
+            } else {
+                // Too many arguments
+                return ARGP_ERR_UNKNOWN;
+            }
+            break;
+
+        case ARGP_KEY_END:
+            // Validate that we have at least the key
+            if (!args->key) {
+                fprintf(stderr, "Error: Missing required <key> argument.\n");
+                return EINVAL;
+            }
+            break;
+
         default:
             return ARGP_ERR_UNKNOWN;
     }
@@ -69,7 +89,8 @@ extern int gittor_config(struct argp_state* state) {
     snprintf(argv[0], argv0len, "%s %s", state->name, name);
 
     // Parse arguments
-    int err = argp_parse(&argp, argc, argv, ARGP_NO_EXIT, &argc, &args);
+    int err = argp_parse(&argp, argc, argv, ARGP_IN_ORDER | ARGP_NO_EXIT, &argc,
+                         &args);
     if (err) {
         free(argv[0]);
         argv[0] = argv0;
@@ -77,28 +98,16 @@ extern int gittor_config(struct argp_state* state) {
         return err;
     }
 
-    // Get positional arguments (key and optional value)
-    if (argc < 2) {
-        fprintf(stderr, "Error: Missing key argument.\n");
-        free(argv[0]);
-        argv[0] = argv0;
-        state->next += argc - 1;
-        return ARGP_ERR_UNKNOWN;
-    }
-
-    args.key = argv[1];
-    if (argc > 2) {
-        args.value = argv[2];
-    }
-
     // Parse key into group.key
     char* dot = strchr(args.key, '.');
     if (!dot) {
-        fprintf(stderr, "Error: Invalid key format. Use 'group.key'.\n");
+        fprintf(stderr,
+                "Invalid key format '%s'. Expected format: <group>.<key>.\n",
+                args.key);
         free(argv[0]);
         argv[0] = argv0;
         state->next += argc - 1;
-        return ARGP_ERR_UNKNOWN;
+        return EINVAL;
     }
     char* group = strndup(args.key, dot - args.key);
     char* key = strdup(dot + 1);
@@ -112,35 +121,29 @@ extern int gittor_config(struct argp_state* state) {
     if (args.value) {
         // Set configuration
         if (config_set(scope, group, key, args.value) != 0) {
-            fprintf(stderr, "Error: Failed to set configuration.\n");
-            free(argv[0]);
-            argv[0] = argv0;
-            state->next += argc - 1;
-            return ARGP_ERR_UNKNOWN;
+            fprintf(stderr, "Error: Failed to set configuration '%s.%s'.\n",
+                    group, key);
+            err = EIO;
         } else {
             printf("Configuration set: %s.%s = %s\n", group, key, args.value);
         }
     } else {
         // Get configuration
-        char* value = config_get(group, key, NULL);
+        char* value = config_get(group, key, NULL);  // no default
         if (value) {
             printf("%s\n", value);
             free(value);
         } else {
             fprintf(stderr, "Error: Configuration '%s.%s' not found.\n", group,
                     key);
-            err = ARGP_ERR_UNKNOWN;
+            err = ENOENT;
         }
     }
 
     free(argv[0]);
     argv[0] = argv0;
     state->next += argc - 1;
-    if (group) {
-        free(group);
-    }
-    if (key) {
-        free(key);
-    }
+    free(group);
+    free(key);
     return err;
 }
