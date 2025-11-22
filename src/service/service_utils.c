@@ -1,3 +1,4 @@
+#include <stddef.h>
 #include <service/service_internals.h>
 
 extern int gittor_service_get_port(GError** error) {
@@ -90,7 +91,7 @@ extern int bind_port_in_range(GSocketAddress** addr,
     for (int port = start; port <= end; port++) {
         *addr = g_inet_socket_address_new_from_string(ip, port);
 
-        g_socket_bind(sock, *addr, TRUE, &error);
+        g_socket_bind(sock, *addr, true, &error);
         if (error) {
             g_object_unref(*addr);
             g_clear_error(&error);

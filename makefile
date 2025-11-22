@@ -477,7 +477,7 @@ $(OUT_TEST_PATH)%.log: $(OUT_TEST_PATH)%
 		printf "$(RED)Valgrind detected memory errors. Please review $@ for more information$(RESET)\n"; \
 		exit $$EXIT_CODE; \
 	elif [ $$EXIT_CODE -eq 124 ]; then \
-		printf "$(RED)Test timed out after 5s, check for infite loop: $<.$(RESET)\n"; \
+		printf "$(RED)Test timed out after 10s, check for infite loop: $<.$(RESET)\n"; \
 		exit $$EXIT_CODE; \
 	elif [ $$EXIT_CODE -ne 0 ] && [ $$EXIT_CODE -ne 1 ]; then \
 		printf "$(RED)Test failed with exit code $$EXIT_CODE: $<$(RESET)\n"; \

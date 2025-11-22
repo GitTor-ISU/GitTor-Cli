@@ -1,4 +1,5 @@
 #include <glib.h>
+#include <stddef.h>
 #include "examples/ini_parser.h"
 
 static gchar* config_path() {

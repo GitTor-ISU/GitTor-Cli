@@ -53,7 +53,7 @@ extern int gittor_verify(struct argp_state* state) {
     size_t argv0len = strlen(state->name) + sizeof(name) + 1;
     char* argv0 = argv[0];
     argv[0] = malloc(argv0len);
-    snprintf(argv[0], argv0len, "%s %s", state->name, name);
+    g_snprintf(argv[0], argv0len, "%s %s", state->name, name);
 
     // Parse arguments
     int err = argp_parse(&argp, argc, argv, ARGP_NO_EXIT, &argc, &args);
