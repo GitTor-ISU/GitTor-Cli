@@ -5,11 +5,15 @@
 #include <stdbool.h>
 
 typedef enum __attribute__((packed)) {
-    /// @brief End the current connection
-    END,
     /// @brief Kill the service
     KILL,
+    /// @brief End the current connection
+    END,
+    ERROR,
     PING,
+    SEED_START,
+    SEED_STOP,
+    SEED_REMOVE,
 } type_e;
 
 typedef struct {
@@ -25,6 +29,15 @@ typedef struct {
  * @return int error code
  */
 extern int gittor_service(struct argp_state* state);
+
+/**
+ * @brief Send a packet to the GitTor service. Starts service if not found.
+ *
+ * @param msg Message to send
+ * @param error Error output
+ * @return packet_t* Response
+ */
+extern packet_t* gittor_service_send(const packet_t* msg, GError** error);
 
 /**
  * @brief Main function for the GitTor service.

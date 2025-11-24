@@ -8,6 +8,18 @@
 #include "service/service.h"
 #include "service/service_internals.h"
 
+static void gittor_service_reply(GSocket* client,
+                                 const packet_t* msg,
+                                 GError** error) {
+    header_t header = {.type = msg->type, .len = msg->len, .magic = MAGIC};
+    g_socket_send(client, (void*)&header, sizeof(header), NULL, error);
+    if (*error) {
+        return;
+    }
+
+    g_socket_send(client, msg->data, header.len, NULL, error);
+}
+
 /**
  * @brief Thread function to handle a client connection to the service
  *
@@ -18,6 +30,8 @@ static gpointer handle_client(gpointer data) {
     GSocket* client = ((client_thread_data_t*)data)->client;
     bool run_thread = true;
     void* buffer = NULL;
+    packet_t reply;
+    char reply_body[256];
 
     while (run_thread) {
         // Parse the header
@@ -71,29 +85,36 @@ static gpointer handle_client(gpointer data) {
             case PING:
                 printf("[GitTor Service thread=%p] Recieved: '%s'\n",
                        (void*)g_thread_self(), (char*)buffer);
-                char ping[256];
-                header.len =
-                    g_snprintf(ping, sizeof(ping) - 1, "pid: %d thread: %p",
-                               getpid(), (void*)g_thread_self()) +
-                    1;
-                header.type = PING;
-                g_socket_send(client, (void*)&header, sizeof(header), NULL,
-                              &error);
+                reply.len = g_snprintf(reply_body, sizeof(reply_body) - 1,
+                                       "pid: %d thread: %p", getpid(),
+                                       (void*)g_thread_self()) +
+                            1;
+                reply.type = PING;
+                reply.data = reply_body;
+                gittor_service_reply(client, &reply, &error);
                 if (error) {
                     g_printerr(
-                        "[GitTor Service thread=%p] Reply body failed: %s\n",
+                        "[GitTor Service thread=%p] Reply failed: "
+                        "%s\n",
                         (void*)g_thread_self(), error->message);
                     run_thread = false;
-                    break;
                 }
-
-                g_socket_send(client, (void*)ping, header.len, NULL, &error);
+                break;
+            default:
+                g_printerr("[GitTor Service thread=%p] Unhandled command: %d\n",
+                           (void*)g_thread_self(), header.type);
+                reply.len = g_snprintf(reply_body, sizeof(reply_body) - 1,
+                                       "Unhandled command: %d", header.type) +
+                            1;
+                reply.type = ERROR;
+                reply.data = reply_body;
+                gittor_service_reply(client, &reply, &error);
                 if (error) {
                     g_printerr(
-                        "[GitTor Service thread=%p] Reply body failed: %s\n",
+                        "[GitTor Service thread=%p] Reply failed: "
+                        "%s\n",
                         (void*)g_thread_self(), error->message);
                     run_thread = false;
-                    break;
                 }
                 break;
         }
