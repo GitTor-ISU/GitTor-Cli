@@ -2,9 +2,9 @@
 #include "cmd/cmd.h"
 #include "unity/unity.h"
 
-static void shouldPass_whenCalledWithNoArgs() {
-    // GIVEN: Just calling gittor seed
-    char* argv[] = {"gittor", "seed", NULL};
+static void shouldPass_whenHelpFlag() {
+    // GIVEN: Seed with help flag
+    char* argv[] = {"gittor", "seed", "--help", NULL};
     int argc = sizeof(argv) / sizeof(*argv) - 1;
 
     // WHEN: Parse arguments
@@ -16,6 +16,6 @@ static void shouldPass_whenCalledWithNoArgs() {
 
 int main() {
     UNITY_BEGIN();
-    RUN_TEST(shouldPass_whenCalledWithNoArgs);
+    RUN_TEST(shouldPass_whenHelpFlag);
     return UNITY_END();
 }
