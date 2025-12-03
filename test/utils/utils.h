@@ -7,19 +7,16 @@
 /**
  * @brief Initialize a new temporary directory for testing
  *
- * @param buf The buffer where the path is written
- * @param buflen The length of the buffer
- * @return int error code
+ * @return char* Temporary directory
  */
-extern int tempdir_init(char* buf, size_t buflen);
+extern char* tempdir_init();
 
 /**
  * @brief Deletes a temporary directory
  *
  * @param dir The path to the directory
- * @return int error code
  */
-extern int tempdir_destroy(char* dir);
+extern void tempdir_destroy(char* dir);
 
 /**
  * @brief Checks if the temporary directory exists

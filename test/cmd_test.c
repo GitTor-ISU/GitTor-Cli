@@ -114,7 +114,7 @@ static void shouldEinval_whenUnknownFlag() {
 
 static void shouldEnoent_whenNoCurrentDirectory() {
     char oldwd[PATH_MAX];
-    char tempdir[PATH_MAX];
+    char* tempdir;
 
     // GIVEN: Any command line call
     char* argv[] = {"gittor", "--help", NULL};
@@ -122,9 +122,12 @@ static void shouldEnoent_whenNoCurrentDirectory() {
 
     // GIVEN: Current directory doesn't exist
     TEST_ASSERT_NOT_NULL(getcwd(oldwd, sizeof(oldwd)));
-    TEST_ASSERT_EQUAL(0, tempdir_init(tempdir, sizeof(tempdir)));
+    tempdir = tempdir_init();
+    if (tempdir == NULL) {
+        TEST_FAIL_MESSAGE("Failed to create temporary directory");
+    }
     TEST_ASSERT_EQUAL(0, chdir(tempdir));
-    TEST_ASSERT_EQUAL(0, tempdir_destroy(tempdir));
+    tempdir_destroy(tempdir);
 
     // WHEN: Parse arguments
     int err = cmd_parse(argc, argv);

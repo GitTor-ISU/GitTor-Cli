@@ -1,4 +1,6 @@
 #include <argp.h>
+#include <errno.h>
+#include <glib.h>
 #include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -44,13 +46,13 @@ static const struct argp_option options[] = {
 static struct argp argp = {
     options, parse_opt, "COMMAND [ARGUMENTS...]", doc, NULL, NULL, NULL};
 
-static bool helped = false;
+static bool helped;
 static error_t parse_opt(int key, char* arg, struct argp_state* state) {
     struct global_arguments* args = state->input;
 
     switch (key) {
         case 'p':
-            snprintf(args->path, sizeof(args->path), "%s", arg);
+            g_snprintf(args->path, sizeof(args->path), "%s", arg);
             break;
 
         case '?':
@@ -113,6 +115,7 @@ static error_t parse_opt(int key, char* arg, struct argp_state* state) {
 extern int cmd_parse(int argc, char** argv) {
     // Defaults
     struct global_arguments args;
+    helped = false;
 
     if (getcwd(args.path, sizeof(args.path)) == NULL) {
         perror("getcwd() error");
@@ -120,7 +123,6 @@ extern int cmd_parse(int argc, char** argv) {
     }
 
     // Parse command line arguments
-    helped = false;
     return argp_parse(&argp, argc, argv,
                       ARGP_IN_ORDER | ARGP_NO_EXIT | ARGP_NO_HELP, NULL, &args);
 }

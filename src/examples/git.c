@@ -1,4 +1,3 @@
-#include <argp.h>
 #include <git2.h>
 #include <stddef.h>
 #include <stdio.h>
