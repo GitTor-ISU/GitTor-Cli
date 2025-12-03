@@ -46,10 +46,9 @@ OPTIONS:
 ### Init
 
 ```
-Usage: gittor init [OPTION...] REPOSITORY
+Usage: gittor init [OPTION...] [DIRECTORY]
 Initializes a new GitTor repository in the current directory.
 
-  -n, --name=NAME            The name of the repository
   -?, --help                 Give this help list
       --usage                Give a short usage message
 ```

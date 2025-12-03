@@ -1,4 +1,3 @@
-#include <stdlib.h>
 #include "examples/calc.h"
 
 #ifndef MOCK_ADD

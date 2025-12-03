@@ -21,7 +21,8 @@ extern int gittor_config(struct argp_state* state);
  * @param default_value The default value if the key is not found
  * @return char* The configuration value (must be freed by the caller)
  */
-extern char* config_get(const char* group,
+extern char* config_get(ConfigScope scope,
+                        const char* group,
                         const char* key,
                         const char* default_value);
 

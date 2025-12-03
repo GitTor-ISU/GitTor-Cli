@@ -1,4 +1,4 @@
-#include <stdio.h>
+#include <glib.h>
 #include <curl/curl.h>
 #include "examples/curl.h"
 
@@ -20,8 +20,8 @@ extern int curl_example() {
         res = curl_easy_perform(curl);
         /* Check for errors */
         if (res != CURLE_OK)
-            fprintf(stderr, "curl_easy_perform() failed: %s\n",
-                    curl_easy_strerror(res));
+            g_printerr("curl_easy_perform() failed: %s\n",
+                       curl_easy_strerror(res));
 
         /* always cleanup */
         curl_easy_cleanup(curl);

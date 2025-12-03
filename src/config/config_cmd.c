@@ -1,4 +1,5 @@
 #include <assert.h>
+#include <glib.h>
 #include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -28,9 +29,7 @@ static char doc[] =
 static struct argp argp = {options, parse_opt, "<key> [<value>]", doc, NULL,
                            NULL,    NULL};
 
-static error_t parse_opt(int key,
-                         __attribute__((__unused__)) char* arg,
-                         struct argp_state* state) {
+static error_t parse_opt(int key, char* arg, struct argp_state* state) {
     struct config_arguments* args = state->input;
 
     switch (key) {
@@ -50,7 +49,8 @@ static error_t parse_opt(int key,
                 args->value = arg;  // value
             } else {
                 // Too many arguments
-                return ARGP_ERR_UNKNOWN;
+                fprintf(stderr, "Error: Too many arguments provided.\n");
+                return EINVAL;
             }
             break;
 
@@ -86,11 +86,10 @@ extern int gittor_config(struct argp_state* state) {
     size_t argv0len = strlen(state->name) + sizeof(name) + 1;
     char* argv0 = argv[0];
     argv[0] = malloc(argv0len);
-    snprintf(argv[0], argv0len, "%s %s", state->name, name);
+    g_snprintf(argv[0], argv0len, "%s %s", state->name, name);
 
     // Parse arguments
-    int err = argp_parse(&argp, argc, argv, ARGP_IN_ORDER | ARGP_NO_EXIT, &argc,
-                         &args);
+    int err = argp_parse(&argp, argc, argv, ARGP_NO_EXIT, 0, &args);
     if (err) {
         free(argv[0]);
         argv[0] = argv0;
@@ -112,6 +111,7 @@ extern int gittor_config(struct argp_state* state) {
     char* group = strndup(args.key, dot - args.key);
     char* key = strdup(dot + 1);
 
+    // Determine scope
     ConfigScope scope = CONFIG_SCOPE_LOCAL;
     if (args.use_global_scope && !args.use_local_scope) {
         scope = CONFIG_SCOPE_GLOBAL;
@@ -120,7 +120,7 @@ extern int gittor_config(struct argp_state* state) {
     // Read or write the configuration
     if (args.value) {
         // Set configuration
-        if (config_set(scope, group, key, args.value) != 0) {
+        if (config_set(scope, group, key, args.value)) {
             fprintf(stderr, "Error: Failed to set configuration '%s.%s'.\n",
                     group, key);
             err = EIO;
@@ -129,7 +129,7 @@ extern int gittor_config(struct argp_state* state) {
         }
     } else {
         // Get configuration
-        char* value = config_get(group, key, NULL);  // no default
+        char* value = config_get(scope, group, key, NULL);  // No default set
         if (value) {
             printf("%s\n", value);
             free(value);
@@ -140,6 +140,7 @@ extern int gittor_config(struct argp_state* state) {
         }
     }
 
+    // Reset to global
     free(argv[0]);
     argv[0] = argv0;
     state->next += argc - 1;

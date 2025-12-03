@@ -2,6 +2,7 @@
 #include <inttypes.h>
 #include <stdbool.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include <unistd.h>
 #include <gio/gio.h>
 #include "service/service.h"
@@ -197,7 +198,7 @@ extern int gittor_service_main() {
         g_thread_join(g_ptr_array_index(threads, i));
     }
 
-    g_ptr_array_free(threads, TRUE);
+    g_ptr_array_free(threads, true);
     g_object_unref(socket);
     g_object_unref(address);
     g_object_unref(cancellable);

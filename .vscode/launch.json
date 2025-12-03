@@ -2,7 +2,7 @@
     "version": "0.2.0",
     "configurations": [
         {
-            "name": "(gdb) gittor cli",
+            "name": "cli",
             "type": "cppdbg",
             "request": "launch",
             "program": "${workspaceFolder}/bin/dev/gittor",
@@ -22,7 +22,7 @@
             ]
         },
         {
-            "name": "(gdb) gittor service",
+            "name": "service",
             "type": "cppdbg",
             "request": "launch",
             "program": "${workspaceFolder}/bin/dev/gittor",

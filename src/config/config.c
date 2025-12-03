@@ -14,7 +14,8 @@ static gchar* global_config_path() {
     return config_path;
 }
 
-char* config_get(const gchar* group,
+char* config_get(ConfigScope scope,
+                 const gchar* group,
                  const gchar* key,
                  const gchar* default_value) {
     GError* error = NULL;
@@ -22,15 +23,18 @@ char* config_get(const gchar* group,
     gchar* value = NULL;
 
     // Try local config first
-    gchar* local_path = local_config_path();
-    if (g_file_test(local_path, G_FILE_TEST_EXISTS)) {
-        g_key_file_load_from_file(keyfile, local_path, G_KEY_FILE_NONE, &error);
-        if (!error) {
-            value = g_key_file_get_string(keyfile, group, key, NULL);
+    if (scope == CONFIG_SCOPE_LOCAL) {
+        gchar* local_path = local_config_path();
+        if (g_file_test(local_path, G_FILE_TEST_EXISTS)) {
+            g_key_file_load_from_file(keyfile, local_path, G_KEY_FILE_NONE,
+                                      &error);
+            if (!error) {
+                value = g_key_file_get_string(keyfile, group, key, NULL);
+            }
+            g_clear_error(&error);
         }
-        g_clear_error(&error);
+        g_free(local_path);
     }
-    g_free(local_path);
 
     // If not found, try global config
     if (!value) {
