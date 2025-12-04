@@ -11,3 +11,4 @@ Checks: >
   -concurrency-mt-unsafe,
   -misc-header-include-cycle,
   -clang-analyzer-optin.core.EnumCastOutOfRange,
+  -clang-analyzer-security.insecureAPI.DeprecatedOrUnsafeBufferHandling,

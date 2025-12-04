@@ -9,7 +9,7 @@
 #include "unity/unity.h"
 #include "utils/utils.h"
 
-static char TEST_DIR[PATH_MAX];
+static char* TEST_DIR = NULL;
 static char TEST_GLOBAL_CONFIG_PATH[PATH_MAX + 27];
 static char TEST_LOCAL_CONFIG_PATH[PATH_MAX + 27];
 
@@ -23,7 +23,7 @@ void setUp() {
     original_cwd = getcwd(NULL, 0);
 
     // Create test directory
-    tempdir_init(TEST_DIR, sizeof(TEST_DIR));
+    TEST_DIR = tempdir_init();
     snprintf(TEST_GLOBAL_CONFIG_PATH, sizeof(TEST_GLOBAL_CONFIG_PATH),
              "%s/.test_global_gittorconfig", TEST_DIR);
     snprintf(TEST_LOCAL_CONFIG_PATH, sizeof(TEST_LOCAL_CONFIG_PATH),
