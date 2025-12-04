@@ -48,9 +48,7 @@ static error_t parse_opt(int key, char* arg, struct argp_state* state) {
             } else if (state->arg_num == 1) {
                 args->value = arg;  // value
             } else {
-                // Too many arguments
-                argp_error(state, "Too many arguments provided.\n");
-                return EINVAL;
+                return E2BIG;
             }
             break;
 
@@ -112,14 +110,13 @@ extern int gittor_config(struct argp_state* state) {
     char* key = g_strdup(dot + 1);
 
     // Determine scope
-    ConfigScope scope = CONFIG_SCOPE_LOCAL;
+    config_scope_e scope = CONFIG_SCOPE_LOCAL;
     if (args.use_global_scope && !args.use_local_scope) {
         scope = CONFIG_SCOPE_GLOBAL;
     }
 
     // Prepare config arguments
-    ConfigArgs config_args = {
-        .scope = scope,
+    config_id_t config_id = {
         .group = group,
         .key = key,
     };
@@ -127,7 +124,7 @@ extern int gittor_config(struct argp_state* state) {
     // Read or write the configuration
     if (args.value) {
         // Set configuration
-        if (config_set(config_args, args.value)) {
+        if (config_set(scope, &config_id, args.value)) {
             argp_error(state, "Failed to set configuration '%s.%s'.\n", group,
                        key);
             err = EIO;
@@ -136,8 +133,7 @@ extern int gittor_config(struct argp_state* state) {
         }
     } else {
         // Get configuration
-
-        char* value = config_get(config_args, NULL);  // No default set
+        char* value = config_get(scope, &config_id, NULL);  // No default set
         if (value) {
             printf("%s\n", value);
             free(value);
