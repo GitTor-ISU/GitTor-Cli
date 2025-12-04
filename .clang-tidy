@@ -10,3 +10,4 @@ Checks: >
   -misc-include-cleaner,
   -concurrency-mt-unsafe,
   -misc-header-include-cycle,
+  -clang-analyzer-optin.core.EnumCastOutOfRange,

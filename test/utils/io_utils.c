@@ -19,7 +19,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
-#include "utils.h"
+#include "utils/utils.h"
 
 extern FILE* redirect_stdout_to_temp(int* old_stdout_fd) {
     FILE* temp = tmpfile();

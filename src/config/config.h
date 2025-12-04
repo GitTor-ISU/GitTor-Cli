@@ -5,6 +5,12 @@
 
 typedef enum { CONFIG_SCOPE_GLOBAL, CONFIG_SCOPE_LOCAL } ConfigScope;
 
+typedef struct {
+    ConfigScope scope;
+    const gchar* group;
+    const gchar* key;
+} ConfigArgs;
+
 /**
  * @brief Runs the config subcommand.
  *
@@ -21,10 +27,7 @@ extern int gittor_config(struct argp_state* state);
  * @param default_value The default value if the key is not found
  * @return char* The configuration value (must be freed by the caller)
  */
-extern char* config_get(ConfigScope scope,
-                        const char* group,
-                        const char* key,
-                        const char* default_value);
+extern char* config_get(ConfigArgs args, const gchar* default_value);
 
 /**
  * @brief Sets a configuration value.
@@ -35,9 +38,6 @@ extern char* config_get(ConfigScope scope,
  * @param value The value to set
  * @return int 0 on success, non-zero on failure
  */
-extern int config_set(ConfigScope scope,
-                      const char* group,
-                      const char* key,
-                      const char* value);
+extern int config_set(ConfigArgs args, const gchar* value);
 
 #endif  // CONFIG_CONFIG_H_

@@ -14,22 +14,20 @@ static gchar* global_config_path() {
     return config_path;
 }
 
-char* config_get(ConfigScope scope,
-                 const gchar* group,
-                 const gchar* key,
-                 const gchar* default_value) {
+char* config_get(ConfigArgs args, const gchar* default_value) {
     GError* error = NULL;
     GKeyFile* keyfile = g_key_file_new();
     gchar* value = NULL;
 
     // Try local config first
-    if (scope == CONFIG_SCOPE_LOCAL) {
+    if (args.scope == CONFIG_SCOPE_LOCAL) {
         gchar* local_path = local_config_path();
         if (g_file_test(local_path, G_FILE_TEST_EXISTS)) {
             g_key_file_load_from_file(keyfile, local_path, G_KEY_FILE_NONE,
                                       &error);
             if (!error) {
-                value = g_key_file_get_string(keyfile, group, key, NULL);
+                value =
+                    g_key_file_get_string(keyfile, args.group, args.key, NULL);
             }
             g_clear_error(&error);
         }
@@ -43,7 +41,8 @@ char* config_get(ConfigScope scope,
             g_key_file_load_from_file(keyfile, global_path, G_KEY_FILE_NONE,
                                       &error);
             if (!error) {
-                value = g_key_file_get_string(keyfile, group, key, NULL);
+                value =
+                    g_key_file_get_string(keyfile, args.group, args.key, NULL);
             }
             g_clear_error(&error);
         }
@@ -59,22 +58,20 @@ char* config_get(ConfigScope scope,
     return value;
 }
 
-int config_set(ConfigScope scope,
-               const gchar* group,
-               const gchar* key,
-               const gchar* value) {
+int config_set(ConfigArgs args, const gchar* value) {
     GError* error = NULL;
     GKeyFile* keyfile = g_key_file_new();
 
-    gchar* path = (scope == CONFIG_SCOPE_LOCAL) ? local_config_path()
-                                                : global_config_path();
+    gchar* path = (args.scope == CONFIG_SCOPE_LOCAL) ? local_config_path()
+                                                     : global_config_path();
 
     GKeyFileFlags flags =
         G_KEY_FILE_KEEP_COMMENTS | G_KEY_FILE_KEEP_TRANSLATIONS;
+
     g_key_file_load_from_file(keyfile, path, flags, &error);
     g_clear_error(&error);
 
-    g_key_file_set_string(keyfile, group, key, value);
+    g_key_file_set_string(keyfile, args.group, args.key, value);
 
     gsize length;
     gchar* data = g_key_file_to_data(keyfile, &length, &error);

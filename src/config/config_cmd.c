@@ -49,7 +49,7 @@ static error_t parse_opt(int key, char* arg, struct argp_state* state) {
                 args->value = arg;  // value
             } else {
                 // Too many arguments
-                fprintf(stderr, "Error: Too many arguments provided.\n");
+                argp_error(state, "Too many arguments provided.\n");
                 return EINVAL;
             }
             break;
@@ -57,7 +57,7 @@ static error_t parse_opt(int key, char* arg, struct argp_state* state) {
         case ARGP_KEY_END:
             // Validate that we have at least the key
             if (!args->key) {
-                fprintf(stderr, "Error: Missing required <key> argument.\n");
+                argp_error(state, "Missing required <key> argument.\n");
                 return EINVAL;
             }
             break;
@@ -100,9 +100,9 @@ extern int gittor_config(struct argp_state* state) {
     // Parse key into group.key
     char* dot = strchr(args.key, '.');
     if (!dot) {
-        fprintf(stderr,
-                "Invalid key format '%s'. Expected format: <group>.<key>.\n",
-                args.key);
+        argp_error(state,
+                   "Invalid key format '%s'. Expected format: <group>.<key>.\n",
+                   args.key);
         free(argv[0]);
         argv[0] = argv0;
         state->next += argc - 1;
@@ -117,25 +117,32 @@ extern int gittor_config(struct argp_state* state) {
         scope = CONFIG_SCOPE_GLOBAL;
     }
 
+    // Prepare config arguments
+    ConfigArgs config_args = {
+        .scope = scope,
+        .group = group,
+        .key = key,
+    };
+
     // Read or write the configuration
     if (args.value) {
         // Set configuration
-        if (config_set(scope, group, key, args.value)) {
-            fprintf(stderr, "Error: Failed to set configuration '%s.%s'.\n",
-                    group, key);
+        if (config_set(config_args, args.value)) {
+            argp_error(state, "Failed to set configuration '%s.%s'.\n", group,
+                       key);
             err = EIO;
         } else {
             printf("Configuration set: %s.%s = %s\n", group, key, args.value);
         }
     } else {
         // Get configuration
-        char* value = config_get(scope, group, key, NULL);  // No default set
+
+        char* value = config_get(config_args, NULL);  // No default set
         if (value) {
             printf("%s\n", value);
             free(value);
         } else {
-            fprintf(stderr, "Error: Configuration '%s.%s' not found.\n", group,
-                    key);
+            argp_error(state, "Configuration '%s.%s' not found.\n", group, key);
             err = ENOENT;
         }
     }
