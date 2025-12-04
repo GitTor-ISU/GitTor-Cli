@@ -108,8 +108,8 @@ extern int gittor_config(struct argp_state* state) {
         state->next += argc - 1;
         return EINVAL;
     }
-    char* group = strndup(args.key, dot - args.key);
-    char* key = strdup(dot + 1);
+    char* group = g_strndup(args.key, dot - args.key);
+    char* key = g_strdup(dot + 1);
 
     // Determine scope
     ConfigScope scope = CONFIG_SCOPE_LOCAL;
