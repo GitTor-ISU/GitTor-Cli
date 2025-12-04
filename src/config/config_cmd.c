@@ -29,9 +29,7 @@ static char doc[] =
 static struct argp argp = {options, parse_opt, "<key> [<value>]", doc, NULL,
                            NULL,    NULL};
 
-static error_t parse_opt(int key,
-                         __attribute__((__unused__)) char* arg,
-                         struct argp_state* state) {
+static error_t parse_opt(int key, char* arg, struct argp_state* state) {
     struct config_arguments* args = state->input;
 
     switch (key) {
@@ -41,6 +39,25 @@ static error_t parse_opt(int key,
 
         case 'l':
             args->use_local_scope = true;
+            break;
+
+        case ARGP_KEY_ARG:
+            // Handle positional arguments
+            if (state->arg_num == 0) {
+                args->key = arg;  // key
+            } else if (state->arg_num == 1) {
+                args->value = arg;  // value
+            } else {
+                return E2BIG;
+            }
+            break;
+
+        case ARGP_KEY_END:
+            // Validate that we have at least the key
+            if (!args->key) {
+                argp_error(state, "Missing required <key> argument.\n");
+                return EINVAL;
+            }
             break;
 
         default:
@@ -70,16 +87,67 @@ extern int gittor_config(struct argp_state* state) {
     g_snprintf(argv[0], argv0len, "%s %s", state->name, name);
 
     // Parse arguments
-    int err = argp_parse(&argp, argc, argv, ARGP_NO_EXIT, &argc, &args);
+    int err = argp_parse(&argp, argc, argv, ARGP_NO_EXIT, 0, &args);
+    if (err) {
+        free(argv[0]);
+        argv[0] = argv0;
+        state->next += argc - 1;
+        return err;
+    }
 
-    // Stub output for template
-    printf("%s PATH: %s (config command not yet implemented)\n", argv[0],
-           args.global->path);
+    // Parse key into group.key
+    char* dot = strchr(args.key, '.');
+    if (!dot) {
+        argp_error(state,
+                   "Invalid key format '%s'. Expected format: <group>.<key>.\n",
+                   args.key);
+        free(argv[0]);
+        argv[0] = argv0;
+        state->next += argc - 1;
+        return EINVAL;
+    }
+    char* group = g_strndup(args.key, dot - args.key);
+    char* key = g_strdup(dot + 1);
 
-    // Reset back to global
+    // Determine scope
+    config_scope_e scope = CONFIG_SCOPE_LOCAL;
+    if (args.use_global_scope && !args.use_local_scope) {
+        scope = CONFIG_SCOPE_GLOBAL;
+    }
+
+    // Prepare config arguments
+    config_id_t config_id = {
+        .group = group,
+        .key = key,
+    };
+
+    // Read or write the configuration
+    if (args.value) {
+        // Set configuration
+        if (config_set(scope, &config_id, args.value)) {
+            argp_error(state, "Failed to set configuration '%s.%s'.\n", group,
+                       key);
+            err = EIO;
+        } else {
+            printf("Configuration set: %s.%s = %s\n", group, key, args.value);
+        }
+    } else {
+        // Get configuration
+        char* value = config_get(scope, &config_id, NULL);  // No default set
+        if (value) {
+            printf("%s\n", value);
+            free(value);
+        } else {
+            argp_error(state, "Configuration '%s.%s' not found.\n", group, key);
+            err = ENOENT;
+        }
+    }
+
+    // Reset to global
     free(argv[0]);
     argv[0] = argv0;
     state->next += argc - 1;
-
+    free(group);
+    free(key);
     return err;
 }
