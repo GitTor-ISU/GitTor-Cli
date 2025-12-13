@@ -456,7 +456,7 @@ $(OBJ_TEST_PATH)%.o: $(TEST_SRC_PATH)%.c $(HEDS) $(TEST_HEDS)
 	@$(CC) -c -o $@ $< $(CFLAGS) $(DEV_FLAGS) $(TEST_DEFS) $(INCS) $(TEST_INCS) $(LIBS)
 
 # Test - Compile CPP source files into object files
-$(OBJ_DEV_PATH)%.o: $(SRC_PATH)%.cpp $(HEDS)
+$(OBJ_TEST_PATH)%.o: $(SRC_PATH)%.cpp $(HEDS)
 	$(call ensure-dir,$@)
 	$(call print-file,$(call relpath,$@))
 	@$(CXX) -c -o $@ $< $(CFLAGS) $(DEV_FLAGS) $(TEST_DEFS) $(INCS) $(LIBS)

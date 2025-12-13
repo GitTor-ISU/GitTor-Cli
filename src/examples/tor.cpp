@@ -67,12 +67,12 @@ void sighandler(int) {
 
 int torrent_example() try {
     auto magnet_uri =
-        "magnet:?xt=urn:btih:0cc30ccd5366088882f1e7a2bb6f55d66e703c8e&xt=urn:"
+        "magnet:?xt=urn:btih:2a8eae08a00f208af674595a5b45c40214ff24f3&xt=urn:"
         "btmh:"
-        "122070888da130f26beb551d7513c7afaa9a85546ddf75d339bcdadb0151032f0f22&"
-        "dn=.git&tr=http%3A%2F%2Ftracker.renfei.net%3A8080%2Fannounce&tr=udp%"
-        "3A%2F%2Ftracker.opentrackr.org%3A1337%2Fannounce&tr=https%3A%2F%"
-        "2Ftracker.jdx3.org%3A443%2Fannounce";
+        "122048d500835bed61c3ad2952c6999ee388dfe4846344ee3e1946f9f37733813daa&"
+        "tr=https%3a%2f%2ftracker.gcrenwp.top%3a443%2fannounce&tr=https%3a%2f%"
+        "2ftracker.moeblog.cn%3a443%2fannounce&tr=https%3a%2f%2ftr.highstar."
+        "shop%3a443%2fannounce&tr=https%3a%2f%2ftr.nyacat.pw%3a443%2fannounce";
 
     const std::string dir = "tor/";
 

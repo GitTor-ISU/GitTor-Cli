@@ -4,18 +4,19 @@
 #include <argp.h>
 #include <stdbool.h>
 
+// TODO(isaac): comment
 typedef enum __attribute__((packed)) {
     /// @brief Kill the service
-    KILL,
+    SERVICE_KILL,
     /// @brief End the current connection
-    END,
-    ERROR,
-    PING,
+    SERVICE_END,
+    SERVICE_ERROR,
+    SERVICE_PING,
     SEED_START,
     SEED_STOP,
-    SEED_REMOVE,
 } type_e;
 
+// TODO(isaac): comment
 typedef struct {
     void* data;
     ssize_t len;

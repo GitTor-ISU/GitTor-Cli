@@ -1,3 +1,4 @@
+#include <git2.h>
 #include <glib.h>
 #include <inttypes.h>
 #include <stdbool.h>
@@ -7,7 +8,22 @@
 #include <gio/gio.h>
 #include "service/service.h"
 #include "service/service_internals.h"
+#include "utils/utils.h"
 
+/// @brief Data passed to each client connection thread
+typedef struct {
+    GSocket* client;
+    /// @brief Call from thread to kill the service
+    GCancellable* connection_cancellable;
+} client_thread_data_t;
+
+/**
+ * @brief Send a reply to the client
+ *
+ * @param client Client to send reply to
+ * @param msg Reply message
+ * @param error error Error throws
+ */
 static void gittor_service_reply(GSocket* client,
                                  const packet_t* msg,
                                  GError** error) {
@@ -17,7 +33,9 @@ static void gittor_service_reply(GSocket* client,
         return;
     }
 
-    g_socket_send(client, msg->data, header.len, NULL, error);
+    if (msg->len > 0 && msg->data) {
+        g_socket_send(client, msg->data, header.len, NULL, error);
+    }
 }
 
 /**
@@ -32,6 +50,7 @@ static gpointer handle_client(gpointer data) {
     void* buffer = NULL;
     packet_t reply;
     char reply_body[256];
+    char oid_str[GIT_OID_HEXSZ + 1];
 
     while (run_thread) {
         // Parse the header
@@ -74,22 +93,22 @@ static gpointer handle_client(gpointer data) {
 
         // Handle the message
         switch (header.type) {
-            case KILL:
+            case SERVICE_KILL:
                 run_thread = false;
                 g_cancellable_cancel(
                     ((client_thread_data_t*)data)->connection_cancellable);
                 break;
-            case END:
+            case SERVICE_END:
                 run_thread = false;
                 break;
-            case PING:
+            case SERVICE_PING:
                 printf("[GitTor Service thread=%p] Recieved: '%s'\n",
                        (void*)g_thread_self(), (char*)buffer);
                 reply.len = g_snprintf(reply_body, sizeof(reply_body) - 1,
                                        "pid: %d thread: %p", getpid(),
                                        (void*)g_thread_self()) +
                             1;
-                reply.type = PING;
+                reply.type = SERVICE_PING;
                 reply.data = reply_body;
                 gittor_service_reply(client, &reply, &error);
                 if (error) {
@@ -100,13 +119,33 @@ static gpointer handle_client(gpointer data) {
                     run_thread = false;
                 }
                 break;
+            case SEED_START:
+                reply.len = -1;
+                reply.type = SEED_START;
+                reply.data = NULL;
+                git_oid_tostr(oid_str, sizeof(oid_str), (git_oid*)buffer);
+                printf("start %s\n", oid_str);
+                gchar remote_dir[PATH_MAX];
+                gittor_remote_path(remote_dir, (git_oid*)buffer);
+                create_torrent(remote_dir);
+                gittor_service_reply(client, &reply, &error);
+                break;
+            case SEED_STOP:
+                // TODO(isaac): implement
+                reply.len = -1;
+                reply.type = SEED_START;
+                reply.data = NULL;
+                git_oid_tostr(oid_str, sizeof(oid_str), (git_oid*)buffer);
+                printf("stop %s\n", oid_str);
+                gittor_service_reply(client, &reply, &error);
+                break;
             default:
                 g_printerr("[GitTor Service thread=%p] Unhandled command: %d\n",
                            (void*)g_thread_self(), header.type);
                 reply.len = g_snprintf(reply_body, sizeof(reply_body) - 1,
                                        "Unhandled command: %d", header.type) +
                             1;
-                reply.type = ERROR;
+                reply.type = SERVICE_ERROR;
                 reply.data = reply_body;
                 gittor_service_reply(client, &reply, &error);
                 if (error) {
@@ -179,9 +218,15 @@ extern int gittor_service_main() {
         return 1;
     }
 
-    // Establish connections
-    GPtrArray* threads = g_ptr_array_new();
+    GPtrArray* client_threads = g_ptr_array_new();
     GCancellable* cancellable = g_cancellable_new();
+
+    // Create the torrent seeding thread
+    seed_thread_data_t seed_data = {.connection_cancellable = cancellable};
+    GThread* seed_thread =
+        g_thread_new("handle_seeding", handle_seeding, &seed_data);
+
+    // Establish connections
     while (true) {
         // Accept a new connection
         GSocket* client = g_socket_accept(socket, cancellable, &error);
@@ -201,8 +246,17 @@ extern int gittor_service_main() {
         client_thread_data_t* data = g_malloc(sizeof(*data));
         data->client = client;
         data->connection_cancellable = cancellable;
-        g_ptr_array_add(threads,
-                        g_thread_new("client-handler", handle_client, data));
+        g_ptr_array_add(client_threads,
+                        g_thread_new("handle_client", handle_client, data));
+
+        // Cleanup any dead connections
+        for (gint i = (gint)(client_threads->len - 1); i >= 0; i--) {
+            GThread* t = g_ptr_array_index(client_threads, i);
+            if (t->joinable) {
+                g_thread_join(t);
+                g_ptr_array_remove_index(client_threads, i);
+            }
+        }
     }
 
     // Notify that the service is not up
@@ -214,12 +268,13 @@ extern int gittor_service_main() {
         // No need to error, things will still work just not as well
     }
 
-    // Cleanup all threads
-    for (guint i = 0; i < threads->len; i++) {
-        g_thread_join(g_ptr_array_index(threads, i));
+    // Cleanup all client_threads
+    for (guint i = 0; i < client_threads->len; i++) {
+        g_thread_join(g_ptr_array_index(client_threads, i));
     }
+    g_thread_join(seed_thread);
 
-    g_ptr_array_free(threads, true);
+    g_ptr_array_free(client_threads, true);
     g_object_unref(socket);
     g_object_unref(address);
     g_object_unref(cancellable);

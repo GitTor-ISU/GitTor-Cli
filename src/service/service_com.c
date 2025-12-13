@@ -98,7 +98,7 @@ static GSocket* get_connection(bool auto_start, GError** error) {
 }
 
 extern packet_t* gittor_service_send(const packet_t* msg, GError** error) {
-    if (msg->type == END || msg->type == KILL) {
+    if (msg->type == SERVICE_END || msg->type == SERVICE_KILL) {
         g_set_error(error, g_quark_from_static_string(__func__), 1,
                     "Error Sending Packet: cannot send control packets");
         return NULL;
@@ -140,10 +140,13 @@ extern packet_t* gittor_service_send(const packet_t* msg, GError** error) {
     packet_t* resp = (packet_t*)malloc(sizeof(*resp));
     resp->type = header.type;
     resp->len = header.len;
-    resp->data = (void*)malloc(header.len);
+    resp->data = NULL;
 
     // Recieve the data
-    g_socket_receive(socket, resp->data, header.len, NULL, error);
+    if (resp->len > 0) {
+        resp->data = (void*)malloc(header.len);
+        g_socket_receive(socket, resp->data, header.len, NULL, error);
+    }
     if (error && *error) {
         free(resp->data);
         free(resp);
@@ -176,7 +179,7 @@ extern int gittor_service_stop() {
 
     if (!error) {
         // Kill the service
-        header_t header = {.magic = MAGIC, .type = KILL, .len = -1};
+        header_t header = {.magic = MAGIC, .type = SERVICE_KILL, .len = -1};
         g_socket_send(socket, (void*)&header, sizeof(header), NULL, NULL);
         g_object_unref(s_socket);
         s_socket = NULL;
@@ -222,7 +225,7 @@ extern void gittor_service_disconnect() {
     }
 
     // Tell the service the connection is over
-    header_t header = {.magic = MAGIC, .type = END, .len = -1};
+    header_t header = {.magic = MAGIC, .type = SERVICE_END, .len = -1};
     g_socket_send(s_socket, (void*)&header, sizeof(header), NULL, NULL);
     g_object_unref(s_socket);
     s_socket = NULL;
@@ -247,7 +250,7 @@ extern const char* gittor_service_status() {
 extern int gittor_service_ping() {
     GError* error = NULL;
     char ping[256];
-    packet_t msg = {.data = ping, .type = PING};
+    packet_t msg = {.data = ping, .type = SERVICE_PING};
     msg.len = g_snprintf(ping, sizeof(ping) - 1, "pid: %d thread: %p", getpid(),
                          (void*)g_thread_self()) +
               1;

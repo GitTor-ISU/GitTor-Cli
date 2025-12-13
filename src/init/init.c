@@ -4,6 +4,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include "init/init.h"
+#include "utils/utils.h"
 
 /**
  * @brief Setup GitTor specific configurations.
@@ -109,13 +110,9 @@ extern int create_bare_repo(char url[FILE_URL_MAX]) {
     git_signature_free(me);
 
     if (!error) {
-        // Get the initial commit hash
-        char oid_str[GIT_OID_HEXSZ + 1];
-        git_oid_tostr(oid_str, sizeof(oid_str), &commit_oid);
-
         // Build the permanent path to the repo
-        gchar* new_dir = g_build_filename(g_get_user_config_dir(), "gittor",
-                                          "repos", oid_str, NULL);
+        gchar new_dir[PATH_MAX];
+        gittor_remote_path(new_dir, &commit_oid);
 
         // Make sure parent directories exist
         gchar* parent = g_path_get_dirname(new_dir);
@@ -128,7 +125,6 @@ extern int create_bare_repo(char url[FILE_URL_MAX]) {
         // Move repo to permanent path
         rename(dir, new_dir);
         g_snprintf(url, FILE_URL_MAX, "file://%s", new_dir);
-        free(new_dir);
     }
 
     if (error < 0) {

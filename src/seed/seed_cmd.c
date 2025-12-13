@@ -8,6 +8,7 @@
 #include "cmd/cmd.h"
 #include "seed/seed.h"
 #include "seed/seed_internals.h"
+#include "service/service.h"
 #include "utils/utils.h"
 
 #define KEY_USAGE 1
@@ -102,6 +103,12 @@ extern int gittor_seed(struct argp_state* state) {
     // Tell the seeder service to begin seeding this
     if (!err && !helped) {
         err = gittor_seed_start(&repo_id);
+    }
+
+    // TODO(Isaac): Change implementation to add and remove torrent during
+    // service runtime
+    if (!err && !helped) {
+        err = gittor_service_restart();
     }
 
     if (err < 0) {
