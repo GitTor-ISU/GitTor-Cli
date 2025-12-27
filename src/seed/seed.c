@@ -27,8 +27,8 @@ static int gittor_seed_command(const git_oid* repo_id, type_e cmd) {
     if (error) {
         g_printerr("Failed to %s seeding of repository '%s': %s\n",
                    command_to_str(cmd), repo_id_str, error->message);
-        g_clear_error(&error);
         error_code = error->code;
+        g_clear_error(&error);
     } else if (resp->type == SERVICE_ERROR) {
         g_printerr("Failed to %s seeding of repository '%s': %s\n",
                    command_to_str(cmd), repo_id_str, (char*)resp->data);

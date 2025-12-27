@@ -4,7 +4,9 @@
 #include <argp.h>
 #include <stdbool.h>
 
-// TODO(isaac): comment
+/**
+ * @brief Packet types to send to the seeder service.
+ */
 typedef enum __attribute__((packed)) {
     /// @brief Kill the service
     SERVICE_KILL,
@@ -16,7 +18,9 @@ typedef enum __attribute__((packed)) {
     SEED_STOP,
 } type_e;
 
-// TODO(isaac): comment
+/**
+ * @brief Packet of data to send to the seeder service.
+ */
 typedef struct {
     void* data;
     ssize_t len;

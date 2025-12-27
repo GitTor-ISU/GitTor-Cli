@@ -1,9 +1,12 @@
 #include <chrono>
 #include <csignal>
+#include <deque>
 #include <filesystem>  // NOLINT(build/c++17)
 #include <fstream>
+#include <git2.h>  // NOLINT(build/include_order)
 #include <glib.h>  // NOLINT(build/include_order)
 #include <iostream>
+#include <iterator>
 #include <string>
 #include <thread>
 #include <utility>
@@ -27,6 +30,7 @@
 #include <libtorrent/write_resume_data.hpp>
 
 extern "C" {
+#include "config/config.h"
 #include "service/service_internals.h"
 #include "utils/utils.h"
 }
@@ -66,54 +70,54 @@ __attribute__((__unused__)) char const* state(lt::torrent_status::state_t s) {
     }
 }
 
-std::vector<char> load_file(char const* filename) {
+std::vector<char> load_file(const char* filename) {
     std::ifstream ifs(filename, std::ios_base::binary);
     ifs.unsetf(std::ios_base::skipws);
     return {std::istream_iterator<char>(ifs), std::istream_iterator<char>()};
 }
 
+void load_torrent(torrent_t& t, const fs::directory_entry& file) {
+    // torrent_name
+    const std::string torrent_name = file.path().stem().string();
+    std::strncpy(t.torrent_name, torrent_name.c_str(), GIT_OID_HEXSZ);
+    t.torrent_name[sizeof(t.torrent_name) - 1] = '\0';
+
+    // torrent_path
+    const std::string torrent_path = file.path().string();
+    std::strncpy(t.torrent_path, torrent_path.c_str(), PATH_MAX);
+    t.torrent_path[sizeof(t.torrent_path) - 1] = '\0';
+
+    // resume path
+    fs::path resume = file.path();
+    resume.replace_extension(".resume");
+    const std::string resume_path = resume.string();
+    std::strncpy(t.resume_path, resume_path.c_str(), PATH_MAX);
+    t.resume_path[sizeof(t.resume_path) - 1] = '\0';
+
+    // save path
+    const std::string save_path = file.path().parent_path().string();
+    std::strncpy(t.save_path, save_path.c_str(), PATH_MAX);
+    t.save_path[sizeof(t.save_path) - 1] = '\0';
+
+    // latest resume time
+    t.last_save_resume = clk::now();
+}
+
 std::vector<torrent_t> find_torrents(const char* dir) {
     std::vector<torrent_t> result;
-
     try {
-        for (const fs::__cxx11::directory_entry& entry :
-             fs::directory_iterator(dir)) {
+        for (const fs::directory_entry& entry : fs::directory_iterator(dir)) {
             if (entry.is_regular_file() &&
                 entry.path().extension() == ".torrent") {
                 torrent_t t;
-
-                // torrent_name
-                const std::string torrent_name = entry.path().stem().string();
-                std::strncpy(t.torrent_name, torrent_name.c_str(),
-                             GIT_OID_HEXSZ);
-                t.torrent_name[sizeof(t.torrent_name) - 1] = '\0';
-
-                // torrent_path
-                const std::string torrent_path = entry.path().string();
-                std::strncpy(t.torrent_path, torrent_path.c_str(), PATH_MAX);
-                t.torrent_path[sizeof(t.torrent_path) - 1] = '\0';
-
-                // resume path
-                fs::path resume = entry.path();
-                resume.replace_extension(".resume");
-                const std::string resume_path = resume.string();
-                std::strncpy(t.resume_path, resume_path.c_str(), PATH_MAX);
-                t.resume_path[sizeof(t.resume_path) - 1] = '\0';
-
-                // save path
-                const std::string save_path =
-                    entry.path().parent_path().string();
-                std::strncpy(t.save_path, save_path.c_str(), PATH_MAX);
-                t.save_path[sizeof(t.save_path) - 1] = '\0';
-
-                // latest resume time
-                t.last_save_resume = clk::now();
-
+                load_torrent(t, entry);
                 result.push_back(t);
             }
         }
     } catch (const fs::filesystem_error& e) {
-        std::cerr << "Error Finding Torrents: " << e.what() << '\n';
+        std::cerr << "[GitTor Service thread=";
+        std::cerr << reinterpret_cast<void*>(g_thread_self());
+        std::cerr << "] Error Finding Torrents: " << e.what() << '\n';
     }
 
     return result;
@@ -126,18 +130,58 @@ void sighandler(int) {
     g_cancellable_cancel(cancellable);
 }
 
+int get_creator(char* buf, size_t size) {
+    int error = 0;
+    git_config* cfg = nullptr;
+    git_config* snapshot = nullptr;
+    const char* name = nullptr;
+    const char* email = nullptr;
+    std::string creator = "GitTor";
+
+    if (git_libgit2_init() < 0) {
+        error = -1;
+    }
+
+    if (!error) {
+        error = git_config_open_default(&cfg);
+    }
+
+    if (!error) {
+        error = git_config_snapshot(&snapshot, cfg);
+        git_config_free(cfg);
+    }
+
+    if (!error) {
+        if (!git_config_get_string(&name, snapshot, "user.name") &&
+            !git_config_get_string(&email, snapshot, "user.email")) {
+            creator += " (";
+            creator += name;
+            creator += " <";
+            creator += email;
+            creator += ">)";
+        }
+    }
+
+    g_strlcpy(buf, creator.c_str(), size);
+
+    git_config_free(snapshot);
+    git_libgit2_shutdown();
+    return error;
+}
+
 }  // anonymous namespace
 
 extern "C" gpointer handle_seeding(gpointer data) {
     seed_thread_data_t* seed_data = static_cast<seed_thread_data_t*>(data);
     cancellable = seed_data->connection_cancellable;
+    GAsyncQueue* queue = seed_data->queue;
     std::signal(SIGINT, &sighandler);
     const char* dir = gittor_remote_dir();
 
-    // Load the session
-    char* ses_path = g_build_filename(dir, ".session", NULL);
+    // Configure the session
+    gchar* ses_path = g_build_filename(dir, ".session", NULL);
     lt::entry::preformatted_type session_params = load_file(ses_path);
-    free(ses_path);
+    g_free(ses_path);
     lt::session_params params = session_params.empty()
                                     ? lt::session_params()
                                     : lt::read_session_params(session_params);
@@ -147,16 +191,32 @@ extern "C" gpointer handle_seeding(gpointer data) {
                                 lt::alert_category::status);
 
     // Set up network
-    // TODO(Isaac): Use config port
-    const int port = 53385;
+    const config_id_t port_config = {.group = "network", .key = "port"};
+    char* port_str = config_get(CONFIG_SCOPE_GLOBAL, &port_config, "51413");
+    int port = 51413;
+    if (port_str != NULL) {
+        char* end = NULL;
+        const int64_t p = strtol(port_str, &end, 10);
+
+        if (end != port_str && *end == '\0' && p > 0 && p <= 65535) {
+            port = static_cast<int>(p);
+        }
+        free(port_str);
+    }
     const std::string listen_interfaces = "0.0.0.0:" + std::to_string(port);
     params.settings.set_str(lt::settings_pack::listen_interfaces,
                             listen_interfaces);
 
+    // Start the session
     lt::session ses(params);
 
-    // Load the torrents
-    std::vector<torrent_t> torrents = find_torrents(dir);
+    // Load the torrents into a deque so addresses remain stable when
+    // adding/removing
+    std::vector<torrent_t> initial = find_torrents(dir);
+    std::deque<torrent_t> torrents;
+    for (torrent_t& t0 : initial) {
+        torrents.push_back(std::move(t0));
+    }
     for (torrent_t& t : torrents) {
         lt::entry::preformatted_type buf = load_file(t.resume_path);
         lt::add_torrent_params atp = lt::load_torrent_file(t.torrent_path);
@@ -220,12 +280,15 @@ extern "C" gpointer handle_seeding(gpointer data) {
                 for (const lt::torrent_status& s : st->status) {
                     torrent_t* t = static_cast<torrent_t*>(s.handle.userdata());
 
-                    std::clog << t->torrent_name << ": " << state(s.state)
-                              << ' ' << (s.download_payload_rate / 1000)
-                              << " kB/s " << (s.total_done / 1000) << " kB ("
+                    std::clog << "[GitTor Service thread=";
+                    std::clog << reinterpret_cast<void*>(g_thread_self());
+                    std::clog << "] Repository " << t->torrent_name << ": "
+                              << state(s.state) << ' '
+                              << (s.download_payload_rate / 1000) << " kB/s "
+                              << (s.total_done / 1000) << " kB ("
                               << (s.progress_ppm / 10000) << "%) downloaded ("
                               << s.num_peers << " peers)\n";
-                    std::cout.flush();
+                    std::clog.flush();
                 }
             }
         }
@@ -246,6 +309,82 @@ extern "C" gpointer handle_seeding(gpointer data) {
                 data->last_save_resume = clk::now();
             }
         }
+
+        // Handle the message queue
+        seed_thread_queue_item_t* item;
+        while ((item = reinterpret_cast<seed_thread_queue_item_t*>(
+                    g_async_queue_try_pop(queue)))) {
+            char remote_dir[PATH_MAX];
+            switch (item->packet.type) {
+                case SEED_START: {
+                    // Create the torrent file on disk
+                    gittor_remote_path(remote_dir, reinterpret_cast<git_oid*>(
+                                                       item->packet.data));
+                    create_torrent(remote_dir);
+
+                    // Load the .torrent and add it to the session using a
+                    // stable storage
+                    const std::string torrent_path =
+                        std::string(remote_dir) + ".torrent";
+                    const fs::directory_entry entry(torrent_path);
+                    torrent_t t;
+                    load_torrent(t, entry);
+
+                    lt::entry::preformatted_type buf = load_file(t.resume_path);
+                    lt::add_torrent_params atp =
+                        lt::load_torrent_file(t.torrent_path);
+                    if (buf.size()) {
+                        lt::add_torrent_params resume_atp =
+                            lt::read_resume_data(buf);
+                        if (atp.info_hashes == resume_atp.info_hashes)
+                            atp = std::move(resume_atp);
+                    }
+
+                    // store the torrent so its address is stable and use that
+                    // for userdata
+                    torrents.push_back(std::move(t));
+                    torrent_t* stored = &torrents.back();
+                    atp.save_path = stored->save_path;
+                    atp.userdata = stored;
+                    ses.async_add_torrent(atp);
+                    item->error_code = 0;
+                    break;
+                }
+
+                case SEED_STOP: {
+                    gittor_remote_path(remote_dir, reinterpret_cast<git_oid*>(
+                                                       item->packet.data));
+                    const std::string torrent_path =
+                        std::string(remote_dir) + ".torrent";
+                    gchar* torrent_file = g_strdup(torrent_path.c_str());
+                    remove(torrent_file);
+                    g_free(torrent_file);
+
+                    // remove from session and our list (match by path)
+                    for (auto it = torrents.begin(); it != torrents.end();
+                         it++) {
+                        if (torrent_path == std::string(it->torrent_path)) {
+                            ses.remove_torrent(it->handle);
+                            torrents.erase(it);
+                            break;
+                        }
+                    }
+
+                    item->error_code = 0;
+                    break;
+                }
+
+                default: {
+                    item->error_code = 1;
+                    break;
+                }
+            }
+
+            g_mutex_lock(&item->mutex);
+            item->ready = true;
+            g_cond_signal(&item->cond);
+            g_mutex_unlock(&item->mutex);
+        }
     }
 
     return NULL;
@@ -262,14 +401,27 @@ extern "C" int create_torrent(char path[PATH_MAX]) try {
 
     lt::add_files(fs, path);
 
-    // TODO(Isaac): Use config trackers
+    // Get the list of trackers from the config
     lt::create_torrent t(fs);
-    t.add_tracker("https://tracker.moeblog.cn:443/announce");
-    t.add_tracker("https://tr.nyacat.pw:443/announce");
-    t.add_tracker("https://tr.highstar.shop:443/announce");
-    t.add_tracker("https://tracker.gcrenwp.top:443/announce");
-    // TODO(Isaac): Set as git user
-    // t.set_creator("libtorrent example");
+    config_id_t config_id = {.group = "network", .key = NULL};
+
+    for (int i = 1; i < 100; i++) {
+        char key[32];
+        g_snprintf(key, sizeof(key), "tracker%d", i);
+        config_id.key = key;
+        char* tracker = config_get(CONFIG_SCOPE_GLOBAL, &config_id, NULL);
+
+        if (tracker == NULL) {
+            break;
+        }
+        t.add_tracker(tracker);
+        free(tracker);
+    }
+
+    // Set the creator
+    char creator[256];
+    get_creator(creator, sizeof(creator));
+    t.set_creator(creator);
 
     // reads the files and calculates the hashes
     lt::set_piece_hashes(t, dir);
@@ -279,8 +431,6 @@ extern "C" int create_torrent(char path[PATH_MAX]) try {
     out.write(buf.data(), static_cast<std::streamsize>(buf.size()));
 
     const lt::add_torrent_params atp = lt::load_torrent_buffer(buf);
-
-    std::cout << make_magnet_uri(atp).c_str() << "\n";
 
     free(base);
     free(dir);

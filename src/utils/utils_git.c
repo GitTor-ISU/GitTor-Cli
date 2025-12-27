@@ -79,6 +79,7 @@ extern int gittor_git_push(git_repository* repo) {
         refspecs.count = 1;
 
         error = git_remote_push(remote, &refspecs, &opts);
+        free(spec);
         free((void*)refspecs.strings);
     }
 

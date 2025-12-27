@@ -105,12 +105,6 @@ extern int gittor_seed(struct argp_state* state) {
         err = gittor_seed_start(&repo_id);
     }
 
-    // TODO(Isaac): Change implementation to add and remove torrent during
-    // service runtime
-    if (!err && !helped) {
-        err = gittor_service_restart();
-    }
-
     if (err < 0) {
         const git_error* e = git_error_last();
         if (e) {

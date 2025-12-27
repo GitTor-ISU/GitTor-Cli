@@ -45,11 +45,6 @@ REL_PATH := $(if $(filter %/,$(REL_PATH)),$(REL_PATH),$(REL_PATH)/)
 endif
 
 # Defines
-ifneq ($(OS),Windows_NT)
-DEFS := -DBUILD_TS=\"$(shell date +%Y-%m-%dT%H:%M:%S.%8N)\"
-else
-DEFS :=
-endif
 TEST_DEFS := $(foreach mock, $(MOCKS), -D$(mock))
 
 # Dependencies

@@ -21,11 +21,22 @@ typedef struct __attribute__((packed)) {
     gint64 len;
 } header_t;
 
-/// @brief Data passed to the seed thread
+/// @brief Data passed to the seed thread on start
 typedef struct {
     /// @brief Call from thread to kill the service
     GCancellable* connection_cancellable;
+    /// @brief Queue of messages to be handled by the seed thread
+    GAsyncQueue* queue;
 } seed_thread_data_t;
+
+/// @brief Queue of data passed to the seed thread during runtime
+typedef struct {
+    packet_t packet;
+    GMutex mutex;
+    GCond cond;
+    bool ready;
+    int error_code;
+} seed_thread_queue_item_t;
 
 /**
  * @brief Thread function to handle seeding torrent repositories
@@ -35,7 +46,12 @@ typedef struct {
  */
 extern gpointer handle_seeding(gpointer data);
 
-// TODO(isaac): comment
+/**
+ * @brief Create a .torrent file from a path
+ *
+ * @param path The folder to torrent
+ * @return int error code
+ */
 extern int create_torrent(char path[PATH_MAX]);
 
 /**
