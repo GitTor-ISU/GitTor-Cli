@@ -13,7 +13,7 @@ extern void api_cleanup() {
 extern int heartbeat(const char* endpoint_url) {
     CURL* curl;
     CURLcode res;
-    long response_code = 0;
+    long response_code = 0;  // NOLINT(runtime/int) - required by curl API
 
     if (!endpoint_url) {
         return -1;  // Invalid URL
