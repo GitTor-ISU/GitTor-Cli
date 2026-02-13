@@ -2,7 +2,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include "signature_extract.h"
+#include "examples/signature_extract.h"
 
 int main() {
     git_libgit2_init();

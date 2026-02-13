@@ -3,7 +3,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
-#include "signature_extract.h"
+#include "examples/signature_extract.h"
 
 #define GET_CWD getcwd
 
