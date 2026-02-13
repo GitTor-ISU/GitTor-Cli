@@ -1,8 +1,8 @@
-#ifndef SIGNATURE_EXTRACT_SIGNATURE_EXTRACT_H_
-#define SIGNATURE_EXTRACT_SIGNATURE_EXTRACT_H_
+#ifndef EXAMPLES_SIGNATURE_EXTRACT_H_
+#define EXAMPLES_SIGNATURE_EXTRACT_H_
 
 extern char* signature_extract(const char* repo_path, const char* commit_sha);
 extern char* get_head_commit_sha(git_repository* repo);
 extern char* find_git_repo_path(void);
 
-#endif  // SIGNATURE_EXTRACT_SIGNATURE_EXTRACT_H_
+#endif  // EXAMPLES_SIGNATURE_EXTRACT_H_
