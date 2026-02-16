@@ -17,7 +17,7 @@ int main() {
     // 2. Open the discovered repository
     git_repository* repo = NULL;
     if (git_repository_open(&repo, repo_path) < 0) {
-        fprintf(stderr, "Failed to open repository at %s\n", repo_path);
+        g_printerr("Failed to open repository at %s\n", repo_path);
         free(repo_path);
         git_libgit2_shutdown();
         return 1;
