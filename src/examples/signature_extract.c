@@ -46,7 +46,7 @@ char* find_git_repo_path(void) {
 
     repo_path = malloc(repo_path_buf.size + 1);
     if (repo_path) {
-        strncpy(repo_path, repo_path_buf.ptr, repo_path_buf.size);
+        g_strlcpy(repo_path, repo_path_buf.ptr, repo_path_buf.size + 1);
         repo_path[repo_path_buf.size] = '\0';
     }
 
@@ -126,8 +126,8 @@ char* signature_extract(const char* repo_path, const char* commit_sha) {
     } else {
         signature_string = malloc(signature_buf.size + 1);
         if (signature_string) {
-            g_strlcpy(signature_string, signature_buf.ptr, signature_buf.size);
-            signature_string[signature_buf.size] = '\0';
+            g_strlcpy(signature_string, signature_buf.ptr,
+                      signature_buf.size + 1);
         }
     }
 
