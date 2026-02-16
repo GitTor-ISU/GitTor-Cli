@@ -42,7 +42,7 @@ int main() {
         printf("\n--- GPG Signature ---\n%s\n", signature);
         free(signature);
     } else {
-        fprintf(stderr, "\nCould not retrieve signature for HEAD commit.\n");
+        g_printerr("\nCould not retrieve signature for HEAD commit.\n");
     }
 
     // 5. Cleanup
