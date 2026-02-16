@@ -119,7 +119,7 @@ char* signature_extract(const char* repo_path, const char* commit_sha) {
     error = git_commit_extract_signature(&signature_buf, &signed_data_buf, repo,
                                          &oid, NULL);
     if (error == GIT_ENOTFOUND) {
-        fprintf(stderr, "No GPG signature found on commit %s\n", commit_sha);
+        g_printerr("No GPG signature found on commit %s\n", commit_sha);
 
     } else if (error < 0) {
         log_git_error(error, "Failed to extract signature");
