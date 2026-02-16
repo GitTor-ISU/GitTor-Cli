@@ -64,8 +64,7 @@ char* find_git_repo_path(void) {
  */
 char* get_head_commit_sha(git_repository* repo) {
     if (!repo) {
-        fprintf(stderr,
-                "Error: get_head_commit_sha called with NULL repository.\n");
+        g_printerr("Error: get_head_commit_sha called with NULL repository.\n");
         return NULL;
     }
 
