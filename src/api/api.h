@@ -14,11 +14,11 @@ extern int api_init();
 extern void api_cleanup();
 
 /**
- * @brief Sends a heartbeat signal to the specified endpoint.
+ * @brief Sends a heartbeat signal to the endpoint specified in the config at
+ * network.api_url, or defaults to "https://gittor.rent/api/" if not set.
  *
- * @param endpoint_url The URL of the endpoint to send the heartbeat to
  * @return int 0 on success, non-zero on failure
  */
-extern int heartbeat(const char* endpoint_url);
+extern int heartbeat();
 
 #endif  // API_API_H_
