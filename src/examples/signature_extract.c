@@ -92,6 +92,7 @@ char* get_head_commit_sha(git_repository* repo) {
  * @param commit_sha The sha for the commit we want to check
  * @return A GPG Signature. Returns NULL on failure.
  */
+// NOLINTNEXTLINE(bugprone-easily-swappable-parameters)
 char* signature_extract(const char* repo_path, const char* commit_sha) {
     git_repository* repo = NULL;
     git_oid oid;
