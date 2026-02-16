@@ -17,8 +17,8 @@
 static void log_git_error(int error, const char* message) {
     if (error < 0) {
         const git_error* e = giterr_last();
-        fprintf(stderr, "Error %d: %s - %s\n", error, message,
-                e ? e->message : "Unknown");
+        g_printerr("Error %d: %s - %s\n", error, message,
+                   e ? e->message : "Unknown");
     }
 }
 
