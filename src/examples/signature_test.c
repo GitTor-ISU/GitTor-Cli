@@ -1,7 +1,7 @@
 #include <git2.h>
+#include <glib.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <string.h>
 #include "examples/signature_extract.h"
 
 int main() {
