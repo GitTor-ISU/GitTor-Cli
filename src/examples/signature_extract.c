@@ -126,7 +126,7 @@ char* signature_extract(const char* repo_path, const char* commit_sha) {
     } else {
         signature_string = malloc(signature_buf.size + 1);
         if (signature_string) {
-            memcpy(signature_string, signature_buf.ptr, signature_buf.size);
+            g_strlcpy(signature_string, signature_buf.ptr, signature_buf.size);
             signature_string[signature_buf.size] = '\0';
         }
     }
