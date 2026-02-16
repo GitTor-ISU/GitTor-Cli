@@ -3,6 +3,7 @@
 #include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <glib/gstdio.h>
 #include "init/init.h"
 #include "utils/utils.h"
 
@@ -50,10 +51,19 @@ extern int create_bare_repo(char url[FILE_URL_MAX]) {
     git_signature* me = NULL;
     git_repository* repo = NULL;
 
+    // Make sure parent directories exist
+    gchar* tmp_dir = g_build_filename(gittor_remote_dir(), NULL);
+    if (g_mkdir_with_parents(tmp_dir, 0700)) {
+        g_error("Failed to create directory for remotes (%s): %s", tmp_dir,
+                g_strerror(errno));
+        error = 1;
+    }
+
     // Create temporary directory for repo
-    gchar* dir = g_dir_make_tmp("gittor-XXXXXX", NULL);
-    if (dir == NULL) {
-        g_error("Failed to create temporary directory");
+    gchar* tmp_remote_path = g_build_filename(tmp_dir, ".XXXXXX", NULL);
+    free(tmp_dir);
+    if (!g_mkdtemp(tmp_remote_path) || tmp_remote_path == NULL) {
+        g_error("Failed to create temporary directory: %s", g_strerror(errno));
         return 1;
     }
 
@@ -65,7 +75,7 @@ extern int create_bare_repo(char url[FILE_URL_MAX]) {
 
     // Initialize a new bare repo
     if (!error) {
-        error = git_repository_init(&repo, dir, true);
+        error = git_repository_init(&repo, tmp_remote_path, true);
     }
 
     // Load up a new git tree
@@ -111,20 +121,16 @@ extern int create_bare_repo(char url[FILE_URL_MAX]) {
 
     if (!error) {
         // Build the permanent path to the repo
-        gchar new_dir[PATH_MAX];
-        gittor_remote_path(new_dir, &commit_oid);
-
-        // Make sure parent directories exist
-        gchar* parent = g_path_get_dirname(new_dir);
-        if (g_mkdir_with_parents(parent, 0700) != 0) {
-            g_error("Failed to create parent directories");
-            error = 2;
-        }
-        g_free(parent);
+        gchar remote_path[PATH_MAX];
+        gittor_remote_path(remote_path, &commit_oid);
 
         // Move repo to permanent path
-        rename(dir, new_dir);
-        g_snprintf(url, FILE_URL_MAX, "file://%s", new_dir);
+        if (g_rename(tmp_remote_path, remote_path)) {
+            g_error("Failed to move repository folder (%s -> %s): %s",
+                    tmp_remote_path, remote_path, g_strerror(errno));
+            error = 3;
+        }
+        g_snprintf(url, FILE_URL_MAX, "file://%s", remote_path);
     }
 
     if (error < 0) {
@@ -132,7 +138,7 @@ extern int create_bare_repo(char url[FILE_URL_MAX]) {
         printf("Error %d/%d: %s\n", error, e->klass, e->message);
     }
 
-    free(dir);
+    free(tmp_remote_path);
     git_libgit2_shutdown();
     return error;
 }

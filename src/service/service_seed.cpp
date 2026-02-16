@@ -178,6 +178,21 @@ extern "C" gpointer handle_seeding(gpointer data) {
     std::signal(SIGINT, &sighandler);
     const char* dir = gittor_remote_dir();
 
+    // Construct the log file
+    gchar* log_path =
+        g_build_filename(g_get_user_config_dir(), "gittor", "seeder.log", NULL);
+    std::ofstream log_file(log_path);
+    g_free(log_path);
+
+    std::streambuf* old_clog_buf = nullptr;
+    std::streambuf* old_cerr_buf = nullptr;
+    if (log_file.is_open()) {
+        old_clog_buf = std::clog.rdbuf(log_file.rdbuf());
+        old_cerr_buf = std::cerr.rdbuf(log_file.rdbuf());
+    } else {
+        std::cerr << "Failed to open log file. Output remaining on stdout.\n";
+    }
+
     // Configure the session
     gchar* ses_path = g_build_filename(dir, ".session", NULL);
     lt::entry::preformatted_type session_params = load_file(ses_path);
@@ -192,20 +207,14 @@ extern "C" gpointer handle_seeding(gpointer data) {
 
     // Set up network
     const config_id_t port_config = {.group = "network", .key = "port"};
-    char* port_str = config_get(CONFIG_SCOPE_GLOBAL, &port_config, "51413");
-    int port = 51413;
+    char* port_str = config_get(CONFIG_SCOPE_GLOBAL, &port_config, NULL);
     if (port_str != NULL) {
-        char* end = NULL;
-        const int64_t p = strtol(port_str, &end, 10);
-
-        if (end != port_str && *end == '\0' && p > 0 && p <= 65535) {
-            port = static_cast<int>(p);
-        }
+        const std::string listen_interfaces =
+            std::string("0.0.0.0:") + port_str;
+        params.settings.set_str(lt::settings_pack::listen_interfaces,
+                                listen_interfaces);
         free(port_str);
     }
-    const std::string listen_interfaces = "0.0.0.0:" + std::to_string(port);
-    params.settings.set_str(lt::settings_pack::listen_interfaces,
-                            listen_interfaces);
 
     // Start the session
     lt::session ses(params);
@@ -268,7 +277,8 @@ extern "C" gpointer handle_seeding(gpointer data) {
             // Torrent error
             if (const lt::torrent_error_alert* er =
                     lt::alert_cast<lt::torrent_error_alert>(a)) {
-                std::clog << a->message() << '\n';
+                std::cerr << a->message() << '\n';
+                std::cerr.flush();
                 er->handle.save_resume_data(
                     lt::torrent_handle::only_if_modified |
                     lt::torrent_handle::save_info_dict);
@@ -364,7 +374,9 @@ extern "C" gpointer handle_seeding(gpointer data) {
                     for (auto it = torrents.begin(); it != torrents.end();
                          it++) {
                         if (torrent_path == std::string(it->torrent_path)) {
-                            ses.remove_torrent(it->handle);
+                            if (it->handle.is_valid()) {
+                                ses.remove_torrent(it->handle);
+                            }
                             torrents.erase(it);
                             break;
                         }
@@ -385,6 +397,13 @@ extern "C" gpointer handle_seeding(gpointer data) {
             g_cond_signal(&item->cond);
             g_mutex_unlock(&item->mutex);
         }
+    }
+
+    if (old_clog_buf) {
+        std::clog.rdbuf(old_clog_buf);
+    }
+    if (old_cerr_buf) {
+        std::cerr.rdbuf(old_cerr_buf);
     }
 
     return NULL;
