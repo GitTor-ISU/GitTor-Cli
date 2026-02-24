@@ -4,7 +4,7 @@
 #include "utils/utils.h"
 
 extern int gittor_get_repo_id(git_oid* repo_id, git_repository* repo) {
-    __attribute__((__unused__)) int error = 0;
+    int error = 0;
     git_revwalk* walk = NULL;
     git_commit* commit = NULL;
 

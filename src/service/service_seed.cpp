@@ -51,7 +51,7 @@ typedef struct torrent_t {
 } torrent_t;
 
 // return the name of a torrent status enum
-__attribute__((__unused__)) char const* state(lt::torrent_status::state_t s) {
+char const* state(lt::torrent_status::state_t s) {
     switch (s) {
         case lt::torrent_status::checking_files:
             return "checking";
@@ -411,13 +411,10 @@ extern "C" gpointer handle_seeding(gpointer data) {
 
 extern "C" int create_torrent(char path[PATH_MAX]) try {
     lt::file_storage fs;
-
-    // recursively adds files in directories
-    char* base = g_path_get_basename(path);
-    char* dir = g_path_get_dirname(path);
     char tor[PATH_MAX];
     g_snprintf(tor, sizeof(tor), "%s.torrent", path);
 
+    // recursively adds files in directories
     lt::add_files(fs, path);
 
     // Get the list of trackers from the config
@@ -443,16 +440,14 @@ extern "C" int create_torrent(char path[PATH_MAX]) try {
     t.set_creator(creator);
 
     // reads the files and calculates the hashes
+    char* dir = g_path_get_dirname(path);
     lt::set_piece_hashes(t, dir);
+    free(dir);
 
     std::ofstream out(tor, std::ios_base::binary);
     std::vector<char> buf = t.generate_buf();
     out.write(buf.data(), static_cast<std::streamsize>(buf.size()));
 
-    const lt::add_torrent_params atp = lt::load_torrent_buffer(buf);
-
-    free(base);
-    free(dir);
     return 0;
 } catch (std::exception& e) {
     std::cerr << "Error Creating Torrent: " << e.what() << '\n';
