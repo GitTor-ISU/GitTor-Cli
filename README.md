@@ -1,6 +1,7 @@
 # GitTor CLI
 
 ## Dependencies
+
 - `build-essential`
 - `gdb`
 - `valgrind`
@@ -12,3 +13,4 @@
 - `libglib2.0-dev`
 - `libgit2-dev`
 - `libcurl4-openssl-dev`
+- `libjson-glib-dev`

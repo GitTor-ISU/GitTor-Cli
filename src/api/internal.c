@@ -1,12 +1,13 @@
 #include <glib.h>
 #include <stdio.h>
+#include <string.h>
 #include "api/internal.h"
 #include "config/config.h"
 
 static const char DEFAULT_API_URL[] = "https://gittor.rent/api";
-static const char USER_AGENT[] = "GitTor-CLI/1.0";  // Hardcoded for now
+static const char USER_AGENT[] = "GitTor-CLI/dev";  // Hardcoded for now
 
-response_buf_t response_buf_init() {
+extern response_buf_t response_buf_init() {
     response_buf_t buf;
     buf.data = g_malloc(1);
     buf.data[0] = '\0';
@@ -14,14 +15,16 @@ response_buf_t response_buf_init() {
     return buf;
 }
 
-size_t write_cb(void* ptr, size_t size, size_t nmemb, void* userdata) {
+extern size_t write_cb(void* ptr, size_t size, size_t nmemb, void* userdata) {
     size_t total = size * nmemb;
     response_buf_t* buf = (response_buf_t*)userdata;
 
+    // Reallocate buffer for new data + null terminator
     char* tmp = g_realloc(buf->data, buf->size + total + 1);
     if (!tmp)
         return 0;
 
+    // Append new data
     buf->data = tmp;
     memcpy(buf->data + buf->size, ptr, total);  // NOLINT - safe since realloc
     buf->size += total;
@@ -30,31 +33,42 @@ size_t write_cb(void* ptr, size_t size, size_t nmemb, void* userdata) {
     return total;
 }
 
-size_t write_file_cb(void* ptr, size_t size, size_t nmemb, void* stream) {
+extern size_t write_file_cb(void* ptr,
+                            size_t size,
+                            size_t nmemb,
+                            void* stream) {
     return fwrite(ptr, size, nmemb, (FILE*)stream);
 }
 
-char* api_get_base_url() {
+extern char* api_get_base_url() {
+    // Get the API URL from config
     char* endpoint_url =
         config_get(CONFIG_SCOPE_LOCAL,
                    &(config_id_t){.group = "network", .key = "api_url"}, NULL);
 
+    // If not set, use the default
     if (!endpoint_url) {
         endpoint_url = g_strdup(DEFAULT_API_URL);
         g_print("Network API URL not set in config, using default: %s\n",
                 DEFAULT_API_URL);
     }
 
+    // Remove trailing slashes
+    size_t len = strlen(endpoint_url);
+    while (len > 0 && endpoint_url[len - 1] == '/') {
+        endpoint_url[--len] = '\0';
+    }
+
     return endpoint_url;
 }
 
-char* api_get_token() {
+extern char* api_get_token() {
     return config_get(CONFIG_SCOPE_LOCAL,
                       &(config_id_t){.group = "network", .key = "api_token"},
                       NULL);
 }
 
-struct curl_slist* api_auth_headers(struct curl_slist* headers) {
+extern struct curl_slist* api_auth_headers(struct curl_slist* headers) {
     char* token = api_get_token();
     if (token && token[0]) {
         char* hdr = g_strdup_printf("Authorization: Bearer %s", token);
@@ -66,7 +80,7 @@ struct curl_slist* api_auth_headers(struct curl_slist* headers) {
     return headers;
 }
 
-CURL* api_curl_handle_new() {
+extern CURL* api_curl_handle_new() {
     CURL* curl = curl_easy_init();
     if (!curl)
         return NULL;
@@ -79,7 +93,11 @@ CURL* api_curl_handle_new() {
     return curl;
 }
 
-int api_build_url(char* out, size_t out_size, const char* path_fmt, ...) {
+extern int api_build_url(char* out,
+                         size_t out_size,
+                         const char* path_fmt,
+                         ...) {
+    // Get the base URL
     char* base_url = api_get_base_url();
 
     int base_len = g_snprintf(out, out_size, "%s", base_url);
@@ -88,6 +106,7 @@ int api_build_url(char* out, size_t out_size, const char* path_fmt, ...) {
     if (base_len < 0 || (size_t)base_len >= out_size)
         return -1;
 
+    // Append the path
     va_list args;
     va_start(args, path_fmt);
     int path_len =
@@ -99,7 +118,7 @@ int api_build_url(char* out, size_t out_size, const char* path_fmt, ...) {
                : 0;
 }
 
-api_result_e api_check_response(CURL* curl, CURLcode res) {
+extern api_result_e api_check_response(CURL* curl, CURLcode res) {
     if (res != CURLE_OK)
         return API_CURL_ERR;
 

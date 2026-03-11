@@ -16,9 +16,9 @@ extern int heartbeat() {
     curl_easy_setopt(curl, CURLOPT_URL, url);
     curl_easy_setopt(curl, CURLOPT_NOBODY, 5L);  // short timeout for heartbeat
 
-    CURLcode res = curl_easy_perform(curl);
-    api_result_e result = api_check_response(curl, res);
+    CURLcode result = curl_easy_perform(curl);
+    api_result_e check = api_check_response(curl, result);
 
     curl_easy_cleanup(curl);
-    return (result == API_OK) ? 0 : -1;
+    return (check == API_OK) ? 0 : -1;
 }

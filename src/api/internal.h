@@ -28,19 +28,19 @@ typedef struct {
  *
  * @return response_buf_t Ready-to-use response buffer
  */
-response_buf_t response_buf_init();
+extern response_buf_t response_buf_init();
 
 /**
  * @brief libcurl write callback for JSON/text responses.
  * Pass to CURLOPT_WRITEFUNCTION; pass a response_buf_t* to CURLOPT_WRITEDATA.
  */
-size_t write_cb(void* ptr, size_t size, size_t nmemb, void* userdata);
+extern size_t write_cb(void* ptr, size_t size, size_t nmemb, void* userdata);
 
 /**
  * @brief libcurl write callback for binary file downloads.
  * Pass to CURLOPT_WRITEFUNCTION; pass a FILE* to CURLOPT_WRITEDATA.
  */
-size_t write_file_cb(void* ptr, size_t size, size_t nmemb, void* stream);
+extern size_t write_file_cb(void* ptr, size_t size, size_t nmemb, void* stream);
 
 /**
  * @brief Get the base API URL from config or default. Caller must free the
@@ -48,7 +48,7 @@ size_t write_file_cb(void* ptr, size_t size, size_t nmemb, void* stream);
  *
  * @return char* The base API URL (eg. "https://gittor.rent/api/")
  */
-char* api_get_base_url();
+extern char* api_get_base_url();
 
 /**
  * @brief Get the auth token from config, if set. Caller must free the returned
@@ -56,7 +56,7 @@ char* api_get_base_url();
  *
  * @return char* The auth token or Null if not configured
  */
-char* api_get_token();
+extern char* api_get_token();
 
 /**
  * @brief Append the Authorization header to a curl_slist if a token is
@@ -65,7 +65,7 @@ char* api_get_token();
  * @param headers Existing curl_slist of headers, or NULL to start a new list
  * @return struct curl_slist* Updated header list
  */
-struct curl_slist* api_auth_headers(struct curl_slist* headers);
+extern struct curl_slist* api_auth_headers(struct curl_slist* headers);
 
 /**
  * @brief Create a new CURL handle with standard project settings (timeouts,
@@ -73,7 +73,7 @@ struct curl_slist* api_auth_headers(struct curl_slist* headers);
  *
  * @return CURL* Configured CURL handle, or NULL on failure
  */
-CURL* api_curl_handle_new();
+extern CURL* api_curl_handle_new();
 
 /**
  * @brief Build a full API URL from a path format string.
@@ -83,7 +83,7 @@ CURL* api_curl_handle_new();
  * @param path_fmt Format string for the API path (eg. "torrents/%ld")
  * @return int 0 on success, non-zero if the URL was truncated
  */
-int api_build_url(char* out, size_t out_size, const char* path_fmt, ...);
+extern int api_build_url(char* out, size_t out_size, const char* path_fmt, ...);
 
 /**
  * @brief Check a completed CURL request for errors.
@@ -92,6 +92,6 @@ int api_build_url(char* out, size_t out_size, const char* path_fmt, ...);
  * @param res The CURLcode result from curl_easy_perform()
  * @return api_result_e appropriate result code
  */
-api_result_e api_check_response(CURL* curl, CURLcode res);
+extern api_result_e api_check_response(CURL* curl, CURLcode res);
 
 #endif  // API_INTERNAL_H_
