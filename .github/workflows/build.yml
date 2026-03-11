@@ -68,7 +68,7 @@ jobs:
           path: |
             lib
             inc
-          key: ${{ runner.os }}-cache-libraries
+          key: ${{ runner.os }}-cache-libraries-${{ hashFiles('.github/workflows/build.yml') }}
 
       - name: Clone vcpkg
         if: steps.cache-libs.outputs.cache-hit != 'true'
