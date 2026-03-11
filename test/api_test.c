@@ -4,6 +4,7 @@
 #include <string.h>
 #include <unistd.h>
 #include "api/api.h"
+#include "api/torrents.h"
 #include "cmd/cmd.h"
 #include "config/config.h"
 #include "unity/unity.h"
@@ -79,6 +80,64 @@ static void shouldPass_whenNetworkAPIUrlNotSet() {
     TEST_ASSERT_EQUAL(0, err);
 }
 
+static void shouldPass_whenParsingWithAllFieldsPresent(void) {
+    const char* json =
+        "{"
+        "  \"id\": 67,"
+        "  \"name\": \"awesome-project\","
+        "  \"description\": \"An awesome project\","
+        "  \"fileSize\": 1,"
+        "  \"uploaderId\": 2,"
+        "  \"uploaderUsername\": \"johnDoe\","
+        "  \"createdAt\": \"2019-08-24T14:15:22Z\","
+        "  \"updatedAt\": \"2019-08-24T14:15:22Z\""
+        "}";
+
+    torrent_dto_t* dto = parse_torrent_json(json);
+
+    TEST_ASSERT_NOT_NULL(dto);
+    TEST_ASSERT_EQUAL_INT64(67, dto->id);
+    TEST_ASSERT_EQUAL_STRING("awesome-project", dto->name);
+    TEST_ASSERT_EQUAL_STRING("An awesome project", dto->description);
+    TEST_ASSERT_EQUAL_INT64(1, dto->file_size);
+    TEST_ASSERT_EQUAL_INT32(2, dto->uploader_id);
+    TEST_ASSERT_EQUAL_STRING("johnDoe", dto->uploader_username);
+    TEST_ASSERT_EQUAL_STRING("2019-08-24T14:15:22Z", dto->created_at);
+    TEST_ASSERT_EQUAL_STRING("2019-08-24T14:15:22Z", dto->updated_at);
+
+    torrent_dto_free(dto);
+}
+
+static void shouldPass_whenParsingWithNullableFields(void) {
+    const char* json =
+        "{"
+        "  \"id\": 68,"
+        "  \"fileSize\": 1,"
+        "  \"uploaderId\": 3,"
+        "  \"uploaderUsername\": \"janeSmith\","
+        "  \"createdAt\": \"2019-08-24T14:15:22Z\","
+        "  \"updatedAt\": \"2019-08-24T14:15:22Z\""
+        "}";
+
+    torrent_dto_t* dto = parse_torrent_json(json);
+
+    TEST_ASSERT_NOT_NULL(dto);
+    TEST_ASSERT_EQUAL_INT64(68, dto->id);
+    TEST_ASSERT_NULL(dto->name);
+    TEST_ASSERT_NULL(dto->description);
+
+    torrent_dto_free(dto);
+}
+
+static void shouldPass_whenParsingInvalidJson(void) {
+    TEST_ASSERT_NULL(parse_torrent_json("not valid json {{{"));
+}
+
+static void shouldPass_whenFreeingNullDto(void) {
+    torrent_dto_free(NULL);
+    TEST_PASS();
+}
+
 int main() {
     UNITY_BEGIN();
 
@@ -87,6 +146,14 @@ int main() {
     tearDown();
 
     RUN_TEST(shouldPass_whenNetworkAPIUrlNotSet);
+
+    RUN_TEST(shouldPass_whenParsingWithAllFieldsPresent);
+
+    RUN_TEST(shouldPass_whenParsingWithNullableFields);
+
+    RUN_TEST(shouldPass_whenParsingInvalidJson);
+
+    RUN_TEST(shouldPass_whenFreeingNullDto);
 
     return UNITY_END();
 }
