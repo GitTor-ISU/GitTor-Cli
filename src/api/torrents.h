@@ -19,11 +19,6 @@ typedef struct {
     char* updated_at;
 } torrent_dto_t;
 
-typedef struct {
-    char* name;
-    char* description;
-} torrent_update_t;
-
 /**
  * @brief Input for updating torrent metadata. Only non-NULL fields are sent.
  */
