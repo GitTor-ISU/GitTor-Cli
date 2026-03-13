@@ -19,6 +19,11 @@ typedef struct {
     char* updated_at;
 } torrent_dto_t;
 
+typedef struct {
+    char* name;
+    char* description;
+} torrent_update_t;
+
 /**
  * @brief Parse a JSON string into a torrent_dto_t. Internal function for
  * parsing API responses.
@@ -28,6 +33,16 @@ typedef struct {
  * with torrent_dto_free().
  */
 torrent_dto_t* parse_torrent_json(const char* json_str);
+
+/**
+ * @brief Serialize a torrent_update_t into a JSON string. Internal function for
+ * sending API requests.
+ *
+ * @param update The torrent_update_t to serialize
+ * @return char* Allocated JSON string, or NULL on error. Caller must free with
+ * g_free().
+ */
+char* build_update_json(const torrent_update_t* update);
 
 /**
  * @brief Free a torrent_dto_t and its internal string fields.
@@ -45,5 +60,30 @@ extern void torrent_dto_free(torrent_dto_t* dto);
  * torrent_dto_free().
  */
 extern torrent_dto_t* api_get_torrent(int64_t torrent_id, api_result_e* result);
+
+/**
+ * @brief Update torrent metadata with non-NULL fields. PUT /torrents/{id}
+ *
+ * @param torrent_id The torrent ID to update
+ * @param update The fields to update (name and/or description, can be NULL)
+ * @param result Pointer to store the API result code
+ * @return torrent_dto_t* The updated torrent, or NULL on error. Caller must
+ * free with torrent_dto_free().
+ */
+extern torrent_dto_t* api_update_torrent(int64_t torrent_id,
+                                         const torrent_update_t* update,
+                                         api_result_e* result);
+
+/**
+ * @brief Download a .torrent file to disk. GET /torrents/{id}/file
+ *
+ * @param torrent_id The torrent ID whose file to download
+ * @param output_path The file path to save the downloaded .torrent to
+ * @param result Pointer to store the API result code
+ * @return int 0 on success, non-zero on error
+ */
+extern int api_get_torrent_file(int64_t torrent_id,
+                                const char* output_path,
+                                api_result_e* result);
 
 #endif  // API_TORRENTS_H_

@@ -1,6 +1,7 @@
 #include <glib.h>
 #include <inttypes.h>
 #include <stdint.h>
+#include <stdio.h>
 #include <json-glib/json-glib.h>
 #include "api/internal.h"
 #include "api/torrents.h"
@@ -58,6 +59,36 @@ torrent_dto_t* parse_torrent_json(const char* json_str) {
     return dto;
 }
 
+char* build_update_json(const torrent_update_t* update) {
+    JsonBuilder* builder = json_builder_new();
+    json_builder_begin_object(builder);
+
+    if (update->name) {
+        json_builder_set_member_name(builder, "name");
+        json_builder_add_string_value(builder, update->name);
+    }
+
+    if (update->description) {
+        json_builder_set_member_name(builder, "description");
+        json_builder_add_string_value(builder, update->description);
+    }
+
+    json_builder_end_object(builder);
+
+    JsonGenerator* generator = json_generator_new();
+    JsonNode* root = json_builder_get_root(builder);
+    json_generator_set_root(generator, root);
+    json_node_free(root);
+
+    gsize len = 0;
+    char* json_str = json_generator_to_data(generator, &len);
+
+    g_object_unref(generator);
+    g_object_unref(builder);
+
+    return json_str;
+}
+
 extern void torrent_dto_free(torrent_dto_t* dto) {
     if (!dto)
         return;
@@ -80,7 +111,7 @@ extern torrent_dto_t* api_get_torrent(int64_t torrent_id,
         return NULL;
     }
 
-    // Build the URL
+    // Build the URL: /torrents/{id}
     char url[1024];
     if (api_build_url(url, sizeof(url), "/torrents/%" PRId64, torrent_id)) {
         curl_easy_cleanup(curl);
@@ -125,4 +156,159 @@ extern torrent_dto_t* api_get_torrent(int64_t torrent_id,
         *result = API_SERVER_ERR;
 
     return dto;
+}
+
+extern torrent_dto_t* api_update_torrent(int64_t torrent_id,
+                                         const torrent_update_t* update,
+                                         api_result_e* result) {
+    if (!update) {
+        if (result)
+            *result = API_CURL_ERR;
+
+        return NULL;
+    }
+
+    CURL* curl = api_curl_handle_new();
+    if (!curl) {
+        if (result)
+            *result = API_CURL_ERR;
+
+        return NULL;
+    }
+
+    // Build the URL: /torrents/{id}
+    char url[1024];
+    if (api_build_url(url, sizeof(url), "/torrents/%" PRId64, torrent_id)) {
+        curl_easy_cleanup(curl);
+        if (result)
+            *result = API_SERVER_ERR;
+
+        return NULL;
+    }
+
+    // Serialize the update struct to JSON
+    char* json_str = build_update_json(update);
+    if (!json_str) {
+        curl_easy_cleanup(curl);
+        if (result)
+            *result = API_CURL_ERR;
+
+        return NULL;
+    }
+
+    // Build multipart form data with the JSON string
+    curl_mime* mime = curl_mime_init(curl);
+    curl_mimepart* part = curl_mime_addpart(mime);
+    curl_mime_name(part, "metadata");
+    curl_mime_data(part, json_str, CURL_ZERO_TERMINATED);
+    curl_mime_type(part, "application/json");
+
+    // Set up headers
+    struct curl_slist* headers = NULL;
+    headers = curl_slist_append(headers, "Accept: application/json");
+    headers = api_auth_headers(headers);
+
+    response_buf_t response = response_buf_init();
+
+    // Configure curl for PUT with multipart body
+    curl_easy_setopt(curl, CURLOPT_URL, url);
+    curl_easy_setopt(curl, CURLOPT_HTTPHEADER, headers);
+    curl_easy_setopt(curl, CURLOPT_MIMEPOST, mime);
+    curl_easy_setopt(curl, CURLOPT_CUSTOMREQUEST, "PUT");
+    curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, write_cb);
+    curl_easy_setopt(curl, CURLOPT_WRITEDATA, &response);
+
+    CURLcode res = curl_easy_perform(curl);
+    api_result_e check = api_check_response(curl, res);
+
+    curl_mime_free(mime);
+    curl_slist_free_all(headers);
+    curl_easy_cleanup(curl);
+    g_free(json_str);
+
+    if (result)
+        *result = check;
+
+    if (check != API_OK) {
+        g_free(response.data);
+        return NULL;
+    }
+
+    // Parse the returned TorrentDto JSON
+    torrent_dto_t* dto = parse_torrent_json(response.data);
+    g_free(response.data);
+
+    if (!dto && result)
+        *result = API_SERVER_ERR;
+
+    return dto;
+}
+
+extern int api_get_torrent_file(int64_t torrent_id,
+                                const char* output_path,
+                                api_result_e* result) {
+    if (!output_path) {
+        if (result)
+            *result = API_CURL_ERR;
+
+        return -1;
+    }
+
+    CURL* curl = api_curl_handle_new();
+    if (!curl) {
+        if (result)
+            *result = API_CURL_ERR;
+
+        return -1;
+    }
+
+    // Build the URL: /torrents/{id}/file
+    char url[1024];
+    if (api_build_url(url, sizeof(url), "/torrents/%" PRId64 "/file",
+                      torrent_id)) {
+        curl_easy_cleanup(curl);
+        if (result)
+            *result = API_SERVER_ERR;
+
+        return -1;
+    }
+
+    // Open the output file for writing binary
+    FILE* fp = fopen(output_path, "wb");
+    if (!fp) {
+        curl_easy_cleanup(curl);
+        if (result)
+            *result = API_CURL_ERR;
+
+        return -1;
+    }
+
+    // Set up headers
+    struct curl_slist* headers = NULL;
+    headers = curl_slist_append(headers, "Accept: application/x-bittorrent");
+    headers = api_auth_headers(headers);
+
+    // Set curl options and perform request
+    curl_easy_setopt(curl, CURLOPT_URL, url);
+    curl_easy_setopt(curl, CURLOPT_HTTPHEADER, headers);
+    curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, write_file_cb);
+    curl_easy_setopt(curl, CURLOPT_WRITEDATA, fp);
+
+    CURLcode res = curl_easy_perform(curl);
+    api_result_e check = api_check_response(curl, res);
+
+    curl_slist_free_all(headers);
+    curl_easy_cleanup(curl);
+    fclose(fp);
+
+    if (result)
+        *result = check;
+
+    // Remove partial file on error
+    if (check != API_OK) {
+        remove(output_path);
+        return -1;
+    }
+
+    return 0;
 }
