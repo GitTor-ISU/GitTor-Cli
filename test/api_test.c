@@ -145,7 +145,8 @@ static void shouldPass_whenParsingInvalidJson(void) {
     // THEN: Should return NULL
     TEST_ASSERT_NULL(dto);
 }
-static void shouldPass_whenAllFieldsNull(void) {
+
+static void shouldPass_whenUpdateWithAllFieldsNull(void) {
     // GIVEN: A torrent_update_t with both fields NULL
     torrent_update_t update = {.name = NULL, .description = NULL};
 
@@ -159,7 +160,7 @@ static void shouldPass_whenAllFieldsNull(void) {
     g_free(json);
 }
 
-static void shouldPass_whenOnlyNameIsSet(void) {
+static void shouldPass_whenUpdateWithOnlyNameIsSet(void) {
     // GIVEN: A torrent_update_t with only name set
     torrent_update_t update = {.name = "My Torrent", .description = NULL};
 
@@ -175,7 +176,7 @@ static void shouldPass_whenOnlyNameIsSet(void) {
     g_free(json);
 }
 
-static void shouldPass_whenOnlyDescriptionIsSet(void) {
+static void shouldPass_whenUpdateWithOnlyDescriptionIsSet(void) {
     // GIVEN: A torrent_update_t with only description set
     torrent_update_t update = {.name = NULL, .description = "A description"};
 
@@ -191,7 +192,7 @@ static void shouldPass_whenOnlyDescriptionIsSet(void) {
     g_free(json);
 }
 
-static void shouldPass_whenAllFieldsAreSet(void) {
+static void shouldPass_whenUpdateWithAllFieldsAreSet(void) {
     // GIVEN: A torrent_update_t with both fields set
     torrent_update_t update = {.name = "My Torrent",
                                .description = "A description"};
@@ -205,6 +206,92 @@ static void shouldPass_whenAllFieldsAreSet(void) {
     TEST_ASSERT_NOT_NULL(strstr(json, "\"My Torrent\""));
     TEST_ASSERT_NOT_NULL(strstr(json, "\"description\""));
     TEST_ASSERT_NOT_NULL(strstr(json, "\"A description\""));
+
+    g_free(json);
+}
+
+static void shouldPass_whenUploadWithAllFieldsNull(void) {
+    // GIVEN: A torrent_upload_t with all fields NULL
+    torrent_upload_t upload = {
+        .name = NULL, .description = NULL, .file_path = NULL};
+
+    // WHEN: Build JSON string from the upload struct
+    char* json = build_upload_json(&upload);
+
+    // THEN: Should return a JSON string
+    TEST_ASSERT_NOT_NULL(json);
+
+    g_free(json);
+}
+
+static void shouldPass_whenUploadWithOnlyNameIsSet(void) {
+    // GIVEN: A torrent_upload_t with only name set
+    torrent_upload_t upload = {
+        .name = "My Torrent", .description = NULL, .file_path = NULL};
+
+    // WHEN: Build JSON string from the upload struct
+    char* json = build_upload_json(&upload);
+
+    // THEN: Should include only the name field
+    TEST_ASSERT_NOT_NULL(json);
+    TEST_ASSERT_NOT_NULL(strstr(json, "\"name\""));
+    TEST_ASSERT_NOT_NULL(strstr(json, "\"My Torrent\""));
+    TEST_ASSERT_NULL(strstr(json, "\"description\""));
+
+    g_free(json);
+}
+
+static void shouldPass_whenUploadWithOnlyDescriptionIsSet(void) {
+    // GIVEN: A torrent_upload_t with only description set
+    torrent_upload_t upload = {
+        .name = NULL, .description = "A description", .file_path = NULL};
+
+    // WHEN: Build JSON string from the upload struct
+    char* json = build_upload_json(&upload);
+
+    // THEN: Should include only the description field
+    TEST_ASSERT_NOT_NULL(json);
+    TEST_ASSERT_NOT_NULL(strstr(json, "\"description\""));
+    TEST_ASSERT_NOT_NULL(strstr(json, "\"A description\""));
+
+    g_free(json);
+}
+
+static void shouldPass_whenUploadWithRequiredFieldsSet(void) {
+    // GIVEN: A torrent_upload_t with required fields set
+    torrent_upload_t upload = {.name = "My Torrent",
+                               .description = NULL,
+                               .file_path = "/tmp/file.torrent"};
+
+    // WHEN: Build JSON string from the upload struct
+    char* json = build_upload_json(&upload);
+
+    // THEN: Should include only the name field
+    TEST_ASSERT_NOT_NULL(json);
+    TEST_ASSERT_NOT_NULL(strstr(json, "\"name\""));
+    TEST_ASSERT_NOT_NULL(strstr(json, "\"My Torrent\""));
+    TEST_ASSERT_NULL(strstr(json, "\"description\""));
+    TEST_ASSERT_NULL(strstr(json, "\"file_path\""));
+
+    g_free(json);
+}
+
+static void shouldPass_whenUploadWithAllFieldsAreSet(void) {
+    // GIVEN: A torrent_upload_t with all fields set
+    torrent_upload_t upload = {.name = "My Torrent",
+                               .description = "A description",
+                               .file_path = "/tmp/file.torrent"};
+
+    // WHEN: Build JSON string from the upload struct
+    char* json = build_upload_json(&upload);
+
+    // THEN: Should include name and description only
+    TEST_ASSERT_NOT_NULL(json);
+    TEST_ASSERT_NOT_NULL(strstr(json, "\"name\""));
+    TEST_ASSERT_NOT_NULL(strstr(json, "\"My Torrent\""));
+    TEST_ASSERT_NOT_NULL(strstr(json, "\"description\""));
+    TEST_ASSERT_NOT_NULL(strstr(json, "\"A description\""));
+    TEST_ASSERT_NULL(strstr(json, "\"file_path\""));
 
     g_free(json);
 }
@@ -235,13 +322,23 @@ int main() {
 
     RUN_TEST(shouldPass_whenParsingInvalidJson);
 
-    RUN_TEST(shouldPass_whenAllFieldsNull);
+    RUN_TEST(shouldPass_whenUpdateWithAllFieldsNull);
 
-    RUN_TEST(shouldPass_whenOnlyNameIsSet);
+    RUN_TEST(shouldPass_whenUpdateWithOnlyNameIsSet);
 
-    RUN_TEST(shouldPass_whenOnlyDescriptionIsSet);
+    RUN_TEST(shouldPass_whenUpdateWithOnlyDescriptionIsSet);
 
-    RUN_TEST(shouldPass_whenAllFieldsAreSet);
+    RUN_TEST(shouldPass_whenUpdateWithAllFieldsAreSet);
+
+    RUN_TEST(shouldPass_whenUploadWithAllFieldsNull);
+
+    RUN_TEST(shouldPass_whenUploadWithOnlyNameIsSet);
+
+    RUN_TEST(shouldPass_whenUploadWithOnlyDescriptionIsSet);
+
+    RUN_TEST(shouldPass_whenUploadWithRequiredFieldsSet);
+
+    RUN_TEST(shouldPass_whenUploadWithAllFieldsAreSet);
 
     RUN_TEST(shouldPass_whenFreeingNullDto);
 

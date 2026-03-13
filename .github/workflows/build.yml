@@ -125,7 +125,7 @@ jobs:
         if: steps.cache-libs.outputs.cache-hit != 'true'
         shell: pwsh
         run: |
-          xcopy "${{ runner.temp }}\vcpkg\installed\x64-windows\include" ".\inc" /E /I /Y
+          xcopy "${{ runner.temp }}\vcpkg\installed\x64-mingw-static\include" ".\inc" /E /I /Y
           xcopy "${{ runner.temp }}\libtorrent\include" ".\inc\libtorrent" /E /I /Y
           Copy-Item "${{ runner.temp }}\libtorrent\build\libtorrent-rasterbar.dll.a" ".\lib\libtorrent-rasterbar.dll.a"
           Copy-Item "${{ runner.temp }}\libtorrent\build\libtorrent-rasterbar.dll" ".\lib\libtorrent-rasterbar.dll"
@@ -147,7 +147,7 @@ jobs:
 
       - name: Make Production
         run: |
-          make prod LIBS='-DCURL_STATICLIB -DPCRE_STATIC -DJSON_STATIC_COMPILATION -Iinc/ -Llib/ -largp-standalone -l:libtorrent-rasterbar.dll.a -mms-bitfields -l:libgio-2.0.a -lgit2 -lcurl -lbcrypt -ladvapi32 -ldnsapi -liphlpapi -l:libgobject-2.0.a -lffi -l:libgmodule-2.0.a -l:libglib-2.0.a -l:libjson-glib-1.0.a -lzlib -lwinhttp -lrpcrt4 -lcrypt32 -lhttp_parser -lsecur32 -lpcre -lzlib -lintl -latomic -lm -liconv -lwinmm -lole32 -lshlwapi -luuid -lpcre2-8 -lws2_32'
+          make prod LIBS='-DCURL_STATICLIB -DPCRE_STATIC -DJSON_STATIC_COMPILATION -Iinc/ -Llib/ -largp-standalone -l:libtorrent-rasterbar.dll.a -mms-bitfields -l:libgio-2.0.a -lgit2 -lcurl -lbcrypt -ladvapi32 -ldnsapi -liphlpapi -l:libgobject-2.0.a -lffi -l:libgmodule-2.0.a -l:libglib-2.0.a -ljson-glib-1.0 -lzlib -lwinhttp -lrpcrt4 -lcrypt32 -lhttp_parser -lsecur32 -lpcre -lzlib -lintl -latomic -lm -liconv -lwinmm -lole32 -lshlwapi -luuid -lpcre2-8 -lws2_32'
           copy ".\lib\libtorrent-rasterbar.dll" ".\bin\prod\libtorrent-rasterbar.dll"
           copy ".\lib\libgcc_s_seh-1.dll" ".\bin\prod\libgcc_s_seh-1.dll"
           copy ".\lib\libwinpthread-1.dll" ".\bin\prod\libwinpthread-1.dll"

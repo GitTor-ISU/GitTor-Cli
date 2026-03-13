@@ -19,10 +19,23 @@ typedef struct {
     char* updated_at;
 } torrent_dto_t;
 
+/**
+ * @brief Input for updating torrent metadata. Only non-NULL fields are sent.
+ */
 typedef struct {
-    char* name;
-    char* description;
+    const char* name;
+    const char* description;
 } torrent_update_t;
+
+/**
+ * @brief Input for uploading a new torrent. name and file_path are required,
+ * description is optional.
+ */
+typedef struct {
+    const char* name;
+    const char* description;
+    const char* file_path;
+} torrent_upload_t;
 
 /**
  * @brief Parse a JSON string into a torrent_dto_t. Internal function for
@@ -43,6 +56,15 @@ torrent_dto_t* parse_torrent_json(const char* json_str);
  * g_free().
  */
 char* build_update_json(const torrent_update_t* update);
+
+/**
+ * @brief Serialize a torrent_upload_t into a JSON string. Internal function for
+ * sending API requests.
+ *
+ * @param upload The torrent_upload_t to serialize
+ * @return char* Allocated JSON string, or NULL on error. Caller must free with
+ */
+char* build_upload_json(const torrent_upload_t* upload);
 
 /**
  * @brief Free a torrent_dto_t and its internal string fields.
@@ -85,5 +107,29 @@ extern torrent_dto_t* api_update_torrent(int64_t torrent_id,
 extern int api_get_torrent_file(int64_t torrent_id,
                                 const char* output_path,
                                 api_result_e* result);
+
+/**
+ * @brief Replace the .torrent file for an existing torrent.
+ * PUT /torrent/{id}/file
+ *
+ * @param torrent_id The torrent ID whose file to replace
+ * @param file_path Local path to the replacement .torrent file
+ * @param result Pointer to store the API result code
+ * @return int 0 on success, non-zero on error
+ */
+extern int api_update_torrent_file(int64_t torrent_id,
+                                   const char* file_path,
+                                   api_result_e* result);
+
+/**
+ * @brief Upload a new torrent with metadata and .torrent file. POST /torrents
+ *
+ * @param upload The upload parameters (name, file_path, optional description)
+ * @param result Pointer to store the API result code
+ * @return torrent_dto_t* The created torrent, or NULL on error. Caller must
+ * free with torrent_dto_free().
+ */
+extern torrent_dto_t* api_upload_torrent(const torrent_upload_t* upload,
+                                         api_result_e* result);
 
 #endif  // API_TORRENTS_H_

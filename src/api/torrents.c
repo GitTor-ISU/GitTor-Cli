@@ -89,6 +89,34 @@ char* build_update_json(const torrent_update_t* update) {
     return json_str;
 }
 
+char* build_upload_json(const torrent_upload_t* upload) {
+    JsonBuilder* builder = json_builder_new();
+    json_builder_begin_object(builder);
+
+    json_builder_set_member_name(builder, "name");
+    json_builder_add_string_value(builder, upload->name);
+
+    if (upload->description) {
+        json_builder_set_member_name(builder, "description");
+        json_builder_add_string_value(builder, upload->description);
+    }
+
+    json_builder_end_object(builder);
+
+    JsonGenerator* generator = json_generator_new();
+    JsonNode* root = json_builder_get_root(builder);
+    json_generator_set_root(generator, root);
+    json_node_free(root);
+
+    gsize len = 0;
+    char* json_str = json_generator_to_data(generator, &len);
+
+    g_object_unref(generator);
+    g_object_unref(builder);
+
+    return json_str;
+}
+
 extern void torrent_dto_free(torrent_dto_t* dto) {
     if (!dto)
         return;
@@ -203,14 +231,14 @@ extern torrent_dto_t* api_update_torrent(int64_t torrent_id,
     curl_mime_data(part, json_str, CURL_ZERO_TERMINATED);
     curl_mime_type(part, "application/json");
 
-    // Set up headers
+    // Set up headers and response buffer
     struct curl_slist* headers = NULL;
     headers = curl_slist_append(headers, "Accept: application/json");
     headers = api_auth_headers(headers);
 
     response_buf_t response = response_buf_init();
 
-    // Configure curl for PUT with multipart body
+    // Configure curl for PUT with multipart body and perform request
     curl_easy_setopt(curl, CURLOPT_URL, url);
     curl_easy_setopt(curl, CURLOPT_HTTPHEADER, headers);
     curl_easy_setopt(curl, CURLOPT_MIMEPOST, mime);
@@ -311,4 +339,153 @@ extern int api_get_torrent_file(int64_t torrent_id,
     }
 
     return 0;
+}
+
+extern int api_update_torrent_file(int64_t torrent_id,
+                                   const char* file_path,
+                                   api_result_e* result) {
+    if (!file_path) {
+        if (result)
+            *result = API_CURL_ERR;
+
+        return -1;
+    }
+
+    CURL* curl = api_curl_handle_new();
+    if (!curl) {
+        if (result)
+            *result = API_CURL_ERR;
+
+        return -1;
+    }
+
+    // Build the URL: /torrents/{id}/file
+    char url[1024];
+    if (api_build_url(url, sizeof(url), "/torrents/%" PRId64 "/file",
+                      torrent_id)) {
+        curl_easy_cleanup(curl);
+        if (result)
+            *result = API_SERVER_ERR;
+
+        return -1;
+    }
+
+    // Build multipart form data with the .torrent file
+    curl_mime* mime = curl_mime_init(curl);
+    curl_mimepart* part = curl_mime_addpart(mime);
+    curl_mime_name(part, "file");
+    curl_mime_filedata(part, file_path);
+    curl_mime_type(part, "application/x-bittorrent");
+
+    // Set up headers
+    struct curl_slist* headers = NULL;
+    headers = api_auth_headers(headers);
+
+    // Configure curl for PUT with multipart body and perform request
+    curl_easy_setopt(curl, CURLOPT_URL, url);
+    curl_easy_setopt(curl, CURLOPT_HTTPHEADER, headers);
+    curl_easy_setopt(curl, CURLOPT_MIMEPOST, mime);
+    curl_easy_setopt(curl, CURLOPT_CUSTOMREQUEST, "PUT");
+
+    CURLcode res = curl_easy_perform(curl);
+    api_result_e check = api_check_response(curl, res);
+
+    curl_mime_free(mime);
+    curl_slist_free_all(headers);
+    curl_easy_cleanup(curl);
+
+    if (result)
+        *result = check;
+
+    return (check == API_OK) ? 0 : -1;
+}
+
+extern torrent_dto_t* api_upload_torrent(const torrent_upload_t* upload,
+                                         api_result_e* result) {
+    if (!upload || !upload->name || !upload->file_path) {
+        if (result)
+            *result = API_CURL_ERR;
+
+        return NULL;
+    }
+
+    CURL* curl = api_curl_handle_new();
+    if (!curl) {
+        if (result)
+            *result = API_CURL_ERR;
+
+        return NULL;
+    }
+
+    // Build the URL: /torrents
+    char url[1024];
+    if (api_build_url(url, sizeof(url), "/torrents")) {
+        curl_easy_cleanup(curl);
+        if (result)
+            *result = API_SERVER_ERR;
+
+        return NULL;
+    }
+
+    // Serialize the metadata to JSON
+    char* json_str = build_upload_json(upload);
+    if (!json_str) {
+        curl_easy_cleanup(curl);
+        if (result)
+            *result = API_CURL_ERR;
+
+        return NULL;
+    }
+
+    // Build multipart form data with the JSON string and .torrent file
+    curl_mime* mime = curl_mime_init(curl);
+
+    curl_mimepart* meta_part = curl_mime_addpart(mime);
+    curl_mime_name(meta_part, "metadata");
+    curl_mime_data(meta_part, json_str, CURL_ZERO_TERMINATED);
+    curl_mime_type(meta_part, "application/json");
+
+    curl_mimepart* file_part = curl_mime_addpart(mime);
+    curl_mime_name(file_part, "file");
+    curl_mime_filedata(file_part, upload->file_path);
+    curl_mime_type(file_part, "application/x-bittorrent");
+
+    // Set up headers and response buffer
+    struct curl_slist* headers = NULL;
+    headers = curl_slist_append(headers, "Accept: application/json");
+    headers = api_auth_headers(headers);
+
+    response_buf_t response = response_buf_init();
+
+    // Configure curl for POST with multipart body and perform request
+    curl_easy_setopt(curl, CURLOPT_URL, url);
+    curl_easy_setopt(curl, CURLOPT_HTTPHEADER, headers);
+    curl_easy_setopt(curl, CURLOPT_MIMEPOST, mime);
+    curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, write_cb);
+    curl_easy_setopt(curl, CURLOPT_WRITEDATA, &response);
+
+    CURLcode res = curl_easy_perform(curl);
+    api_result_e check = api_check_response(curl, res);
+
+    curl_mime_free(mime);
+    curl_slist_free_all(headers);
+    curl_easy_cleanup(curl);
+    g_free(json_str);
+
+    if (result)
+        *result = check;
+
+    if (check != API_OK) {
+        g_free(response.data);
+        return NULL;
+    }
+
+    // Parse the returned TorrentDto JSON
+    torrent_dto_t* dto = parse_torrent_json(response.data);
+    g_free(response.data);
+
+    if (!dto && result)
+        *result = API_SERVER_ERR;
+
+    return dto;
 }
