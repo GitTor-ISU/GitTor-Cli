@@ -81,6 +81,7 @@ static void shouldPass_whenNetworkAPIUrlNotSet() {
 }
 
 static void shouldPass_whenParsingWithAllFieldsPresent(void) {
+    // GIVEN: A JSON string with all fields present
     const char* json =
         "{"
         "  \"id\": 67,"
@@ -93,8 +94,10 @@ static void shouldPass_whenParsingWithAllFieldsPresent(void) {
         "  \"updatedAt\": \"2019-08-24T14:15:22Z\""
         "}";
 
+    // WHEN: Parse the JSON into a torrent_dto_t
     torrent_dto_t* dto = parse_torrent_json(json);
 
+    // THEN: All fields should be parsed correctly
     TEST_ASSERT_NOT_NULL(dto);
     TEST_ASSERT_EQUAL_INT64(67, dto->id);
     TEST_ASSERT_EQUAL_STRING("awesome-project", dto->name);
@@ -109,6 +112,7 @@ static void shouldPass_whenParsingWithAllFieldsPresent(void) {
 }
 
 static void shouldPass_whenParsingWithNullableFields(void) {
+    // GIVEN: A JSON string with nullable fields set to null
     const char* json =
         "{"
         "  \"id\": 68,"
@@ -119,8 +123,10 @@ static void shouldPass_whenParsingWithNullableFields(void) {
         "  \"updatedAt\": \"2019-08-24T14:15:22Z\""
         "}";
 
+    // WHEN: Parse the JSON into a torrent_dto_t
     torrent_dto_t* dto = parse_torrent_json(json);
 
+    // THEN: nullable fields should be NULL, others parsed correctly
     TEST_ASSERT_NOT_NULL(dto);
     TEST_ASSERT_EQUAL_INT64(68, dto->id);
     TEST_ASSERT_NULL(dto->name);
@@ -130,11 +136,87 @@ static void shouldPass_whenParsingWithNullableFields(void) {
 }
 
 static void shouldPass_whenParsingInvalidJson(void) {
-    TEST_ASSERT_NULL(parse_torrent_json("not valid json {{{"));
+    // GIVEN: An invalid JSON string
+    const char* json = "not valid json {{{";
+
+    // WHEN: Parse the JSON into a torrent_dto_t
+    torrent_dto_t* dto = parse_torrent_json(json);
+
+    // THEN: Should return NULL
+    TEST_ASSERT_NULL(dto);
+}
+static void shouldPass_whenAllFieldsNull(void) {
+    // GIVEN: A torrent_update_t with both fields NULL
+    torrent_update_t update = {.name = NULL, .description = NULL};
+
+    // WHEN: Build JSON string from the update struct
+    char* json = build_update_json(&update);
+
+    // THEN: Should return an empty JSON object
+    TEST_ASSERT_NOT_NULL(json);
+    TEST_ASSERT_EQUAL_STRING("{}", json);
+
+    g_free(json);
+}
+
+static void shouldPass_whenOnlyNameIsSet(void) {
+    // GIVEN: A torrent_update_t with only name set
+    torrent_update_t update = {.name = "My Torrent", .description = NULL};
+
+    // WHEN: Build JSON string from the update struct
+    char* json = build_update_json(&update);
+
+    // THEN: Should include only the name field
+    TEST_ASSERT_NOT_NULL(json);
+    TEST_ASSERT_NOT_NULL(strstr(json, "\"name\""));
+    TEST_ASSERT_NOT_NULL(strstr(json, "\"My Torrent\""));
+    TEST_ASSERT_NULL(strstr(json, "\"description\""));
+
+    g_free(json);
+}
+
+static void shouldPass_whenOnlyDescriptionIsSet(void) {
+    // GIVEN: A torrent_update_t with only description set
+    torrent_update_t update = {.name = NULL, .description = "A description"};
+
+    // WHEN: Build JSON string from the update struct
+    char* json = build_update_json(&update);
+
+    // THEN: Should include only the description field
+    TEST_ASSERT_NOT_NULL(json);
+    TEST_ASSERT_NOT_NULL(strstr(json, "\"description\""));
+    TEST_ASSERT_NOT_NULL(strstr(json, "\"A description\""));
+    TEST_ASSERT_NULL(strstr(json, "\"name\""));
+
+    g_free(json);
+}
+
+static void shouldPass_whenAllFieldsAreSet(void) {
+    // GIVEN: A torrent_update_t with both fields set
+    torrent_update_t update = {.name = "My Torrent",
+                               .description = "A description"};
+
+    // WHEN: Build JSON string from the update struct
+    char* json = build_update_json(&update);
+
+    // THEN: Should include both fields
+    TEST_ASSERT_NOT_NULL(json);
+    TEST_ASSERT_NOT_NULL(strstr(json, "\"name\""));
+    TEST_ASSERT_NOT_NULL(strstr(json, "\"My Torrent\""));
+    TEST_ASSERT_NOT_NULL(strstr(json, "\"description\""));
+    TEST_ASSERT_NOT_NULL(strstr(json, "\"A description\""));
+
+    g_free(json);
 }
 
 static void shouldPass_whenFreeingNullDto(void) {
-    torrent_dto_free(NULL);
+    // GIVEN: A NULL torrent_dto_t pointer
+    torrent_dto_t* dto = NULL;
+
+    // WHEN: Call torrent_dto_free with NULL
+    torrent_dto_free(dto);
+
+    // THEN: Shouldn't crash
     TEST_PASS();
 }
 
@@ -152,6 +234,14 @@ int main() {
     RUN_TEST(shouldPass_whenParsingWithNullableFields);
 
     RUN_TEST(shouldPass_whenParsingInvalidJson);
+
+    RUN_TEST(shouldPass_whenAllFieldsNull);
+
+    RUN_TEST(shouldPass_whenOnlyNameIsSet);
+
+    RUN_TEST(shouldPass_whenOnlyDescriptionIsSet);
+
+    RUN_TEST(shouldPass_whenAllFieldsAreSet);
 
     RUN_TEST(shouldPass_whenFreeingNullDto);
 
