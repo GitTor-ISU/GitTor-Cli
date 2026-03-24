@@ -83,11 +83,11 @@ int main(int argc, char** argv) {
     int result = verify_commit_signature(gpg_ctx, repo, commit_hash);
 
     // Cleanup
+    free(commit_sha);
+    free(repo_path);
     git_repository_free(repo);
     gpgme_release(gpg_ctx);
     git_libgit2_shutdown();
 
-    // In a production environment, you should 'rm -rf' the temporary GNUPGHOME
-    // here.
     return result == 0 ? 0 : 1;
 }
