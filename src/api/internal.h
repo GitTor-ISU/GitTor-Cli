@@ -2,6 +2,7 @@
 #define API_INTERNAL_H_
 
 #include <stddef.h>
+#include <time.h>
 #include <curl/curl.h>
 
 /**
@@ -93,5 +94,14 @@ extern int api_build_url(char* out, size_t out_size, const char* path_fmt, ...);
  * @return api_result_e appropriate result code
  */
 extern api_result_e api_check_response(CURL* curl, CURLcode res);
+
+/**
+ * @brief Parse an expiry time from a string epoch format to time_t.
+ *
+ * @param expires The expiry time as a string (should be a numeric epoch)
+ * @param epoch_out Output parameter for the parsed time_t value
+ * @return int 0 on success, non-zero on failure
+ */
+extern int parse_expiry_epoch(const char* expires, time_t* epoch_out);
 
 #endif  // API_INTERNAL_H_

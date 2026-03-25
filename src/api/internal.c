@@ -1,6 +1,7 @@
 #include <glib.h>
 #include <stdio.h>
 #include <string.h>
+#include <time.h>
 #include "api/internal.h"
 #include "config/config.h"
 
@@ -64,7 +65,7 @@ extern char* api_get_base_url() {
 
 extern char* api_get_token() {
     return config_get(CONFIG_SCOPE_LOCAL,
-                      &(config_id_t){.group = "network", .key = "api_token"},
+                      &(config_id_t){.group = "auth", .key = "access_token"},
                       NULL);
 }
 
@@ -133,4 +134,19 @@ extern api_result_e api_check_response(CURL* curl, CURLcode res) {
         return API_NOT_FOUND;
     else
         return API_SERVER_ERR;
+}
+
+extern int parse_expiry_epoch(const char* expires, time_t* epoch_out) {
+    if (!expires || expires[0] == '\0' || !epoch_out) {
+        return EINVAL;
+    }
+
+    errno = 0;
+    char* endptr = NULL;
+    gint64 value = g_ascii_strtoll(expires, &endptr, 10);
+    if (errno != 0 || endptr == expires || *endptr != '\0' || value < 0)
+        return EINVAL;
+
+    *epoch_out = (time_t)value;
+    return 0;
 }
