@@ -8,7 +8,9 @@
 #ifdef _WIN32
 #include <conio.h>
 #else
+#include <errno.h>
 #include <termios.h>
+#include <sys/stat.h>
 #endif
 
 extern authentication_dto_t* parse_authentication_json(const char* json) {
@@ -187,4 +189,16 @@ extern void secure_zero(void* ptr, size_t len) {
             *p++ = 0;
         }
     }
+}
+
+extern int lock_file_permissions(const char* path) {
+#ifdef _WIN32
+#else
+    // Unix-like: Use chmod to set file permissions to 0600 (read/write for
+    // owner only)
+    if (chmod(path, S_IRUSR | S_IWUSR) != 0) {
+        return errno;
+    }
+#endif
+    return 0;
 }

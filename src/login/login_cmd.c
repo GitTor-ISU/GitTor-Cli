@@ -154,8 +154,6 @@ extern int gittor_login(struct argp_state* state) {
     CURLcode res = curl_easy_perform(curl);
     api_result_e check = api_check_response(curl, res);
 
-    printf("%s", response.data ? response.data : "No response data");
-
     login_dto_free(&login_dto);
     curl_slist_free_all(headers);
     curl_easy_cleanup(curl);
@@ -205,6 +203,16 @@ extern int gittor_login(struct argp_state* state) {
 
         return EIO;
     }
+
+    // Lock the config file permissions to be only accessible by the owner
+    char* config_path = global_config_path();
+    if (lock_file_permissions(config_path)) {
+        g_printerr(
+            "Warning: Failed to set config file permissions. Please ensure "
+            "that %s is only accessible by the owner.\n",
+            config_path);
+    }
+    g_free(config_path);
 
     // Check if the token is already expired
     time_t now = time(NULL);

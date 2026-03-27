@@ -91,4 +91,14 @@ extern int prompt_line(const char* prompt,
  */
 extern void secure_zero(void* ptr, size_t len);
 
+/**
+ * @brief Locks the permissions of a file to be only accessible by the owner.
+ * Used for the config file that stores the authentication token to prevent
+ * other users from reading it.
+ *
+ * @param path The path to the file to lock
+ * @return int 0 on success, non-zero on failure
+ */
+extern int lock_file_permissions(const char* path);
+
 #endif  // LOGIN_LOGIN_H_
