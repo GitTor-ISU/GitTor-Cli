@@ -1,5 +1,6 @@
 #include <glib.h>
 #include <stdbool.h>
+#include <stdio.h>
 #include <string.h>
 #include <time.h>
 #include "api/internal.h"
@@ -14,7 +15,9 @@ struct login_arguments {
 
 static struct argp_option options[] = {{NULL}};
 
-static char doc[] = "Authenticate with the GitTor server.";
+static char doc[] =
+    "Login to GitTor. Prompts for email/username and password, then saves the "
+    "returned authentication token in the global config.";
 
 static struct argp argp = {options, parse_opt, "", doc, NULL, NULL, NULL};
 
@@ -46,7 +49,7 @@ extern int gittor_login(struct argp_state* state) {
     g_snprintf(argv[0], argv0len, "%s %s", state->name, name);
 
     // Parse arguments
-    int err = argp_parse(&argp, argc, argv, ARGP_NO_EXIT, &argc, &args);
+    int err = argp_parse(&argp, argc, argv, ARGP_NO_EXIT, 0, &args);
     if (err) {
         free(argv[0]);
         argv[0] = argv0;
@@ -71,15 +74,6 @@ extern int gittor_login(struct argp_state* state) {
         return err;
     }
 
-    // Determine if it is an email or username
-    char email[256] = {0};
-    char username[256] = {0};
-    if (strchr(identifier, '@')) {
-        g_snprintf(email, sizeof(email), "%s", identifier);
-    } else {
-        g_snprintf(username, sizeof(username), "%s", identifier);
-    }
-
     // Prompt for password
     err = prompt_line("Password", true, password, sizeof(password));
     if (err) {
@@ -94,9 +88,15 @@ extern int gittor_login(struct argp_state* state) {
     }
 
     // Build the login DTO and clear the password
-    login_dto_t login_dto = {.email = g_strdup(email),
-                             .username = g_strdup(username),
-                             .password = g_strdup(password)};
+    login_dto_t login_dto = {0};
+    if (strchr(identifier, '@')) {  // check if it is an email or username
+        login_dto.email = g_strdup(identifier);
+        login_dto.username = NULL;
+    } else {
+        login_dto.username = g_strdup(identifier);
+        login_dto.email = NULL;
+    }
+    login_dto.password = g_strdup(password);
     secure_zero(password, sizeof(password));
 
     CURL* curl = api_curl_handle_new();
@@ -154,13 +154,17 @@ extern int gittor_login(struct argp_state* state) {
     CURLcode res = curl_easy_perform(curl);
     api_result_e check = api_check_response(curl, res);
 
+    printf("%s", response.data ? response.data : "No response data");
+
     login_dto_free(&login_dto);
     curl_slist_free_all(headers);
     curl_easy_cleanup(curl);
     g_free(json_str);
 
     if (check != API_OK) {
-        if (check == API_FORBIDDEN) {
+        if (check == API_BAD_REQUEST) {
+            g_printerr("Invalid request.\n");
+        } else if (check == API_FORBIDDEN) {
             g_printerr("Invalid email/username or password.\n");
         } else if (check == API_SERVER_ERR) {
             g_printerr("Server error occurred. Please try again later.\n");

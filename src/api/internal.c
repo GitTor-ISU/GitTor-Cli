@@ -128,12 +128,19 @@ extern api_result_e api_check_response(CURL* curl, CURLcode res) {
 
     if (response_code >= 200 && response_code < 300)
         return API_OK;
+
+    if (response_code == 400)
+        return API_BAD_REQUEST;
     if (response_code == 401 || response_code == 403)
         return API_FORBIDDEN;
     if (response_code == 404)
         return API_NOT_FOUND;
-    else
+
+    if (response_code >= 500 && response_code < 600)
         return API_SERVER_ERR;
+
+    printf("Unexpected response code: %ld\n", response_code);
+    return API_CURL_ERR;  // Treat other codes as errors
 }
 
 extern int parse_expiry_epoch(const char* expires, time_t* epoch_out) {

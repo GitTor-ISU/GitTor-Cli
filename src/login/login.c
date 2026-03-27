@@ -61,8 +61,10 @@ extern char* build_login_json(const login_dto_t* dto) {
         json_builder_add_string_value(builder, dto->username);
     }
 
-    json_builder_set_member_name(builder, "password");
-    json_builder_add_string_value(builder, dto->password);
+    if (dto->password) {
+        json_builder_set_member_name(builder, "password");
+        json_builder_add_string_value(builder, dto->password);
+    }
 
     json_builder_end_object(builder);
 
@@ -91,16 +93,12 @@ extern void authentication_dto_free(authentication_dto_t* dto) {
 }
 
 extern void login_dto_free(login_dto_t* dto) {
-    if (!dto)
-        return;
-
     if (dto->email)
         g_free(dto->email);
     if (dto->username)
         g_free(dto->username);
-
-    g_free(dto->password);
-    g_free(dto);
+    if (dto->password)
+        g_free(dto->password);
 }
 
 extern int prompt_line(const char* prompt,
@@ -183,8 +181,10 @@ extern int prompt_line(const char* prompt,
 }
 
 extern void secure_zero(void* ptr, size_t len) {
-    volatile unsigned char* p = (volatile unsigned char*)ptr;
-    while (len--) {
-        *p++ = 0;
+    if (ptr && len > 0) {
+        volatile char* p = (volatile char*)ptr;
+        while (len--) {
+            *p++ = 0;
+        }
     }
 }

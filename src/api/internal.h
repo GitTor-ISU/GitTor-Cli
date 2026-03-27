@@ -10,10 +10,11 @@
  */
 typedef enum {
     API_OK = 0,
+    API_BAD_REQUEST,
     API_NOT_FOUND,
     API_FORBIDDEN,
     API_SERVER_ERR,
-    API_CURL_ERR,
+    API_CURL_ERR
 } api_result_e;
 
 /**

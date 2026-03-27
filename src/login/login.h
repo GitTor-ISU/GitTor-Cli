@@ -86,7 +86,7 @@ extern int prompt_line(const char* prompt,
  * @brief Securely zeroes a memory buffer to prevent sensitive data from
  * lingering in memory.
  *
- * @param ptr The pointer to the buffer to zero (out must be non-NULL)
+ * @param ptr The pointer to the buffer to zero (can be NULL)
  * @param len The length of the buffer in bytes
  */
 extern void secure_zero(void* ptr, size_t len);
