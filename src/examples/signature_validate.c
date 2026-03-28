@@ -1,4 +1,5 @@
 #include <git2.h>
+#include <glib.h>
 #include <gpgme.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -25,21 +26,21 @@ gpgme_ctx_t setup_isolated_gpg_context(const char* keys_file_path) {
     gpgme_check_version(NULL);
     gpgme_ctx_t ctx;
     if (gpgme_new(&ctx) != GPG_ERR_NO_ERROR) {
-        fprintf(stderr, "Failed to initialize GPGME context.\n");
+        g_printerr("Failed to initialize GPGME context.\n");
         return NULL;
     }
 
     gpgme_data_t key_data;
     if (gpgme_data_new_from_file(&key_data, keys_file_path, 1) !=
         GPG_ERR_NO_ERROR) {
-        fprintf(stderr, "Failed to read keys file at: %s\n", keys_file_path);
+        g_printerr("Failed to read keys file at: %s\n", keys_file_path);
         gpgme_release(ctx);
         return NULL;
     }
 
     gpgme_error_t err = gpgme_op_import(ctx, key_data);
     if (err != GPG_ERR_NO_ERROR) {
-        fprintf(stderr, "Failed to import keys: %s\n", gpgme_strerror(err));
+        g_printerr("Failed to import keys: %s\n", gpgme_strerror(err));
     }
 
     gpgme_data_release(key_data);
@@ -55,7 +56,7 @@ int verify_commit_signature(gpgme_ctx_t ctx,
                             const char* commit_hash) {
     git_oid oid;
     if (git_oid_fromstr(&oid, commit_hash) < 0) {
-        fprintf(stderr, "Invalid commit hash format.\n");
+        g_printerr("Invalid commit hash format.\n");
         return -1;
     }
 
@@ -65,8 +66,8 @@ int verify_commit_signature(gpgme_ctx_t ctx,
     if (git_commit_extract_signature(&signature, &signed_data, repo, &oid,
                                      NULL) < 0) {
         const git_error* e = git_error_last();
-        fprintf(stderr, "Commit %s has no signature or extraction failed: %s\n",
-                commit_hash, e ? e->message : "");
+        g_printerr("Commit %s has no signature or extraction failed: %s\n",
+                   commit_hash, e ? e->message : "");
         return -1;
     }
 
@@ -82,17 +83,17 @@ int verify_commit_signature(gpgme_ctx_t ctx,
         gpgme_signature_t sig = result->signatures;
 
         if (gpgme_err_code(sig->status) == GPG_ERR_NO_ERROR) {
-            printf("[SUCCESS] Valid signature from Key Fingerprint: %s\n",
-                   sig->fpr);
+            g_print("[SUCCESS] Valid signature from Key Fingerprint: %s\n",
+                    sig->fpr);
             is_valid = 1;
         } else {
-            printf(
+            g_print(
                 "[FAILURE] Invalid signature or key missing. FPR: %s (Error: "
                 "%s)\n",
                 sig->fpr ? sig->fpr : "unknown", gpgme_strerror(sig->status));
         }
     } else {
-        printf(
+        g_print(
             "[FAILURE] Verification failed to find a recognizable signature "
             "block.\n");
     }
