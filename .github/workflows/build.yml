@@ -13,7 +13,7 @@ jobs:
 
       - uses: awalsh128/cache-apt-pkgs-action@latest
         with:
-          packages: libtorrent-rasterbar-dev libglib2.0-dev libgit2-dev libcurl4-openssl-dev valgrind gcovr clang-tidy
+          packages: libtorrent-rasterbar-dev libglib2.0-dev libgit2-dev libcurl4-openssl-dev libjson-glib-dev valgrind gcovr clang-tidy
           version: 1.0
 
       - name: Make Development
@@ -29,7 +29,7 @@ jobs:
 
       - uses: awalsh128/cache-apt-pkgs-action@latest
         with:
-          packages: libtorrent-rasterbar-dev libglib2.0-dev libgit2-dev libcurl4-openssl-dev valgrind gcovr clang-tidy
+          packages: libtorrent-rasterbar-dev libglib2.0-dev libgit2-dev libcurl4-openssl-dev libjson-glib-dev valgrind gcovr clang-tidy
           version: 1.0
 
       - name: Make Production
@@ -133,21 +133,34 @@ jobs:
           Copy-Item (Get-Command libwinpthread-1.dll -ErrorAction SilentlyContinue).Source ".\lib\libwinpthread-1.dll"
           Copy-Item (Get-Command libstdc++-6.dll -ErrorAction SilentlyContinue).Source ".\lib\libstdc++-6.dll"
 
-      - name: Copy glib and libgit
+      - name: Copy vcpkg libraries
         if: steps.cache-libs.outputs.cache-hit != 'true'
         shell: pwsh
         run: |
+          xcopy "${{ runner.temp }}\vcpkg\installed\x64-mingw-static\lib" ".\lib" /E /I /Y
           xcopy "${{ runner.temp }}\vcpkg\installed\x64-mingw-static\include" ".\inc" /E /I /Y
-          xcopy "${{ runner.temp }}\vcpkg\installed\x64-mingw-static\lib\glib-2.0\include" ".\inc" /E /I /Y
           xcopy ".\inc\glib-2.0" ".\inc" /E /I /Y
           xcopy ".\inc\json-glib-1.0" ".\inc" /E /I /Y
+          xcopy ".\lib\glib-2.0\include" ".\inc" /E /I /Y
           xcopy "${{ runner.temp }}\vcpkg\installed\x64-mingw-static\lib" ".\lib" /E /I /Y
           Copy-Item "${{ runner.temp }}\vcpkg\installed\x64-mingw-static\tools\glib\gspawn-win64-helper-console.exe" ".\lib\gspawn-win64-helper-console.exe"
           Copy-Item "${{ runner.temp }}\vcpkg\installed\x64-mingw-static\tools\glib\gspawn-win64-helper.exe" ".\lib\gspawn-win64-helper.exe"
 
+      - name: Upload Libraries
+        uses: actions/upload-artifact@v4
+        with:
+          name: libraries
+          path: lib/
+
+      - name: Upload Includes
+        uses: actions/upload-artifact@v4
+        with:
+          name: includes
+          path: inc/
+
       - name: Make Production
         run: |
-          make prod LIBS='-DCURL_STATICLIB -DPCRE_STATIC -Iinc/ -Llib/ -largp-standalone -l:libtorrent-rasterbar.dll.a -mms-bitfields -l:libgio-2.0.a -l:libjson-glib-1.0.a -lgit2 -lcurl -lbcrypt -ladvapi32 -ldnsapi -liphlpapi -l:libgobject-2.0.a -lffi -l:libgmodule-2.0.a -l:libglib-2.0.a -lzlib -lwinhttp -lrpcrt4 -lcrypt32 -lhttp_parser -lsecur32 -lpcre -lzlib -lintl -latomic -lm -liconv -lwinmm -lole32 -lshlwapi -luuid -lpcre2-8 -lws2_32'
+          make prod LIBS='-DPCRE_STATIC -DCURL_STATICLIB -DJSON_STATIC_BUILD -mms-bitfields -DPCRE2_STATIC -Iinc/ -Llib -l:libargp-standalone.a -l:libtorrent-rasterbar.dll.a -l:libgit2.a -l:libwinhttp.a -l:librpcrt4.a -l:libcrypt32.a -l:libole32.a -l:libhttp_parser.a -l:libws2_32.a -l:libsecur32.a -l:libpcre.a -l:libcurl.a -l:libbcrypt.a -l:libadvapi32.a -l:libcrypt32.a -l:libsecur32.a -l:libws2_32.a -l:libiphlpapi.a -l:libzlib.a -l:libws2_32.a -l:libjson-glib-1.0.a -l:libgio-2.0.a -l:libintl.a -l:libshlwapi.a -l:libdnsapi.a -l:libiphlpapi.a -l:libws2_32.a -l:libgobject-2.0.a -l:libintl.a -l:libffi.a -l:libgmodule-2.0.a -l:libintl.a -l:libglib-2.0.a -l:libintl.a -l:libatomic.a -l:libm.a -l:libiconv.a -l:libws2_32.a -l:libwinmm.a -l:libole32.a -l:libshlwapi.a -l:libuuid.a -l:libpcre2-8.a -l:libzlib.a'
           copy ".\lib\libtorrent-rasterbar.dll" ".\bin\prod\libtorrent-rasterbar.dll"
           copy ".\lib\libgcc_s_seh-1.dll" ".\bin\prod\libgcc_s_seh-1.dll"
           copy ".\lib\libwinpthread-1.dll" ".\bin\prod\libwinpthread-1.dll"
@@ -160,15 +173,3 @@ jobs:
         with:
           name: gittor-exe
           path: bin/prod
-
-      - name: Upload Includes
-        uses: actions/upload-artifact@v4
-        with:
-          name: includes
-          path: inc/
-
-      - name: Upload Libraries
-        uses: actions/upload-artifact@v4
-        with:
-          name: libraries
-          path: lib/
