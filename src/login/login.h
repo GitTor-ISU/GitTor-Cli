@@ -99,6 +99,6 @@ extern void secure_zero(void* ptr, size_t len);
  * @param path The path to the file to lock
  * @return int 0 on success, non-zero on failure
  */
-extern int lock_file_permissions(const char* path);
+extern int lock_file_permissions(__attribute__((__unused__)) const char* path);
 
 #endif  // LOGIN_LOGIN_H_

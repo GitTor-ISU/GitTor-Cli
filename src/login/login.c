@@ -191,7 +191,7 @@ extern void secure_zero(void* ptr, size_t len) {
     }
 }
 
-extern int lock_file_permissions(const char* path) {
+extern int lock_file_permissions(__attribute__((__unused__)) const char* path) {
 #ifdef _WIN32
 #else
     // Unix-like: Use chmod to set file permissions to 0600 (read/write for
