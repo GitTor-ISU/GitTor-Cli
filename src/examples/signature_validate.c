@@ -5,6 +5,7 @@
 #include <string.h>
 #include <unistd.h>
 #include <examples/signature_extract.h>
+#include <examples/signature_validate.h>
 
 /*
  * Sets up an isolated GPG context and imports our trusted keys.
