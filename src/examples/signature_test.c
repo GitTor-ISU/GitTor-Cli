@@ -40,14 +40,14 @@ int main(int argc, char** argv) {
     char* signature = signature_extract(repo_path, commit_sha);
 
     if (signature) {
-        printf("\n--- GPG Signature ---\n%s\n", signature);
+        g_printerr("\n--- GPG Signature ---\n%s\n", signature);
         free(signature);
     } else {
         g_printerr("\nCould not retrieve signature for HEAD commit.\n");
     }
 
     if (argc != 2) {
-        printf("Usage: %s <path_to_keys.asc> \n", argv[0]);
+        g_printerr("Usage: %s <path_to_keys.asc> \n", argv[0]);
         return 1;
     }
 
@@ -61,7 +61,7 @@ int main(int argc, char** argv) {
         return 1;
 
     if (git_repository_open(&repo, repo_path) < 0) {
-        fprintf(stderr, "Could not open repository at %s\n", repo_path);
+        g_printerr("Could not open repository at %s\n", repo_path);
         return 1;
     }
 
