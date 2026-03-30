@@ -121,7 +121,7 @@ ENTS := $(foreach \
 	$(SRCS), \
 	$(if \
 		$(shell powershell -NoProfile -Command \
-			"$(CXX) -E $(src) $(CFLAGS) $(INCS) $(LIBS) | Select-String -Pattern $(ENT_REGEX) -CaseSensitive"), \
+			"Get-Content $(src) | Select-String -Pattern $(ENT_REGEX) -CaseSensitive"), \
 		$(src) \
 	) \
 )
@@ -130,7 +130,7 @@ TEST_ENTS := $(foreach \
 	$(TEST_SRCS), \
 	$(if \
 		$(shell powershell -NoProfile -Command \
-			"$(CXX) -E $(src) $(CFLAGS) $(INCS) $(TEST_INCS) $(LIBS) | Select-String -Pattern $(ENT_REGEX) -CaseSensitive"), \
+			"Get-Content $(src) | Select-String -Pattern $(ENT_REGEX) -CaseSensitive"), \
 		$(src) \
 	) \
 )
