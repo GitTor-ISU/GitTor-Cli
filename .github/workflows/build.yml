@@ -125,7 +125,7 @@ jobs:
         if: steps.cache-libs.outputs.cache-hit != 'true'
         shell: pwsh
         run: |
-          xcopy "${{ runner.temp }}\vcpkg\installed\x64-mingw-static\include" ".\inc" /E /I /Y
+          xcopy "${{ runner.temp }}\vcpkg\installed\x64-windows\include" ".\inc" /E /I /Y
           xcopy "${{ runner.temp }}\libtorrent\include" ".\inc\libtorrent" /E /I /Y
           Copy-Item "${{ runner.temp }}\libtorrent\build\libtorrent-rasterbar.dll.a" ".\lib\libtorrent-rasterbar.dll.a"
           Copy-Item "${{ runner.temp }}\libtorrent\build\libtorrent-rasterbar.dll" ".\lib\libtorrent-rasterbar.dll"
