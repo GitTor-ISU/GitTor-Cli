@@ -54,7 +54,7 @@ TEST_DEFS := $(foreach mock, $(MOCKS), -D$(mock))
 
 # Dependencies
 ifneq ($(OS),Windows_NT)
-PKGS := libtorrent-rasterbar glib-2.0 gio-2.0 libgit2 libcurl
+PKGS := libtorrent-rasterbar glib-2.0 gio-2.0 libgit2 libcurl json-glib-1.0
 LIBS := $(if $(PKGS),$(shell pkg-config --cflags --libs $(PKGS)))
 endif
 
@@ -103,7 +103,7 @@ ENTS := $(foreach \
 	src,\
 	$(SRCS), \
 	$(if \
-		$(shell $(CXX) -E $(src) $(INCS) $(LIBS) | grep -lP $(ENT_REGEX)), \
+		$(shell cat $(src) | grep -lP $(ENT_REGEX)), \
 		$(src) \
 	) \
 )
@@ -111,7 +111,7 @@ TEST_ENTS := $(foreach \
 	src,\
 	$(TEST_SRCS), \
 	$(if \
-		$(shell $(CXX) -E $(src) $(INCS) $(TEST_INCS) $(LIBS) | grep -lP $(ENT_REGEX)), \
+		$(shell cat $(src) | grep -lP $(ENT_REGEX)), \
 		$(src) \
 	) \
 )
@@ -121,7 +121,7 @@ ENTS := $(foreach \
 	$(SRCS), \
 	$(if \
 		$(shell powershell -NoProfile -Command \
-			"$(CXX) -E $(src) $(INCS) $(LIBS) | Select-String -Pattern $(ENT_REGEX) -CaseSensitive"), \
+			"Get-Content $(src) | Select-String -Pattern $(ENT_REGEX) -CaseSensitive"), \
 		$(src) \
 	) \
 )
@@ -130,7 +130,7 @@ TEST_ENTS := $(foreach \
 	$(TEST_SRCS), \
 	$(if \
 		$(shell powershell -NoProfile -Command \
-			"$(CXX) -E $(src) $(INCS) $(TEST_INCS) $(LIBS) | Select-String -Pattern $(ENT_REGEX) -CaseSensitive"), \
+			"Get-Content $(src) | Select-String -Pattern $(ENT_REGEX) -CaseSensitive"), \
 		$(src) \
 	) \
 )

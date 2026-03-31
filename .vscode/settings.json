@@ -98,6 +98,15 @@
         "./src",
         "./test",
         "/usr/include/glib-2.0",
-        "/usr/lib/x86_64-linux-gnu/glib-2.0/include"
+        "/usr/lib/x86_64-linux-gnu/glib-2.0/include",
+        "/usr/include/json-glib-1.0"
+    ],
+    "clangd.fallbackFlags": [
+        "-D_GNU_SOURCE",
+        "-I${workspaceFolder}/src",
+        "-I${workspaceFolder}/test",
+        "-I/usr/include/glib-2.0",
+        "-I/usr/lib/x86_64-linux-gnu/glib-2.0/include",
+        "-I/usr/include/json-glib-1.0"
     ]
 }

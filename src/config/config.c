@@ -8,7 +8,7 @@ static gchar* local_config_path() {
     return path;
 }
 
-static gchar* global_config_path() {
+extern gchar* global_config_path() {
     const gchar* home = g_get_home_dir();
     gchar* config_path = g_build_filename(home, ".gittorconfig", NULL);
     return config_path;

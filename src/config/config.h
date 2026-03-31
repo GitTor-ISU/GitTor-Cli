@@ -2,6 +2,7 @@
 #define CONFIG_CONFIG_H_
 
 #include <argp.h>
+#include <glib.h>
 
 typedef enum { CONFIG_SCOPE_GLOBAL, CONFIG_SCOPE_LOCAL } config_scope_e;
 
@@ -9,6 +10,14 @@ typedef struct {
     const gchar* group;
     const gchar* key;
 } config_id_t;
+
+/**
+ * @brief Gets the path to the local config file (.gittorconfig in current
+ * directory). Caller must free the returned string.
+ *
+ * @return gchar* string path to global config file
+ */
+extern gchar* global_config_path();
 
 /**
  * @brief Runs the config subcommand.
