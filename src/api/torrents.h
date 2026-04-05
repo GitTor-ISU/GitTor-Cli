@@ -63,6 +63,7 @@ char* build_update_json(const torrent_update_t* update);
  *
  * @param upload The torrent_upload_t to serialize
  * @return char* Allocated JSON string, or NULL on error. Caller must free with
+ * g_free().
  */
 char* build_upload_json(const torrent_upload_t* upload);
 
@@ -110,7 +111,7 @@ extern int api_get_torrent_file(int64_t torrent_id,
 
 /**
  * @brief Replace the .torrent file for an existing torrent.
- * PUT /torrent/{id}/file
+ * PUT /torrents/{id}/file
  *
  * @param torrent_id The torrent ID whose file to replace
  * @param file_path Local path to the replacement .torrent file

@@ -48,7 +48,7 @@ extern size_t write_file_cb(void* ptr, size_t size, size_t nmemb, void* stream);
  * @brief Get the base API URL from config or default. Caller must free the
  * returned string.
  *
- * @return char* The base API URL (eg. "https://gittor.rent/api/")
+ * @return char* The base API URL (e.g. "https://gittor.rent/api/")
  */
 extern char* api_get_base_url();
 
@@ -56,7 +56,7 @@ extern char* api_get_base_url();
  * @brief Get the auth token from config, if set. Caller must free the returned
  * string.
  *
- * @return char* The auth token or Null if not configured
+ * @return char* The auth token or NULL if not configured
  */
 extern char* api_get_token();
 
@@ -82,7 +82,7 @@ extern CURL* api_curl_handle_new();
  *
  * @param out Output buffer
  * @param out_size Size of the output buffer
- * @param path_fmt Format string for the API path (eg. "torrents/%ld")
+ * @param path_fmt Format string for the API path (e.g. "torrents/%ld")
  * @return int 0 on success, non-zero if the URL was truncated
  */
 extern int api_build_url(char* out, size_t out_size, const char* path_fmt, ...);
