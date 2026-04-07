@@ -309,6 +309,7 @@ static void shouldPass_whenFreeingNullDto(void) {
 
 int main() {
     UNITY_BEGIN();
+    api_init();
 
     setUp();
     RUN_TEST(shouldPass_whenNetworkAPIUrlIsSet);
@@ -342,5 +343,6 @@ int main() {
 
     RUN_TEST(shouldPass_whenFreeingNullDto);
 
+    api_cleanup();
     return UNITY_END();
 }

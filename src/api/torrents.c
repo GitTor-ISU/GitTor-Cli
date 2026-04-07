@@ -152,7 +152,15 @@ extern torrent_dto_t* api_get_torrent(int64_t torrent_id,
     // Set up headers and response buffer
     struct curl_slist* headers = NULL;
     headers = curl_slist_append(headers, "Accept: application/json");
-    headers = api_auth_headers(headers);
+    api_result_e auth_result = api_auth_headers(&headers);
+    if (auth_result != API_OK) {
+        curl_slist_free_all(headers);
+        curl_easy_cleanup(curl);
+        if (result)
+            *result = auth_result;
+
+        return NULL;
+    }
 
     response_buf_t response = response_buf_init();
 
@@ -234,7 +242,16 @@ extern torrent_dto_t* api_update_torrent(int64_t torrent_id,
     // Set up headers and response buffer
     struct curl_slist* headers = NULL;
     headers = curl_slist_append(headers, "Accept: application/json");
-    headers = api_auth_headers(headers);
+    api_result_e auth_result = api_auth_headers(&headers);
+    if (auth_result != API_OK) {
+        curl_mime_free(mime);
+        curl_slist_free_all(headers);
+        curl_easy_cleanup(curl);
+        if (result)
+            *result = auth_result;
+
+        return NULL;
+    }
 
     response_buf_t response = response_buf_init();
 
@@ -314,7 +331,16 @@ extern int api_get_torrent_file(int64_t torrent_id,
     // Set up headers
     struct curl_slist* headers = NULL;
     headers = curl_slist_append(headers, "Accept: application/x-bittorrent");
-    headers = api_auth_headers(headers);
+    api_result_e auth_result = api_auth_headers(&headers);
+    if (auth_result != API_OK) {
+        curl_slist_free_all(headers);
+        curl_easy_cleanup(curl);
+        fclose(fp);
+        if (result)
+            *result = auth_result;
+
+        return -1;
+    }
 
     // Set curl options and perform request
     curl_easy_setopt(curl, CURLOPT_URL, url);
@@ -379,7 +405,16 @@ extern int api_update_torrent_file(int64_t torrent_id,
 
     // Set up headers
     struct curl_slist* headers = NULL;
-    headers = api_auth_headers(headers);
+    api_result_e auth_result = api_auth_headers(&headers);
+    if (auth_result != API_OK) {
+        curl_mime_free(mime);
+        curl_slist_free_all(headers);
+        curl_easy_cleanup(curl);
+        if (result)
+            *result = auth_result;
+
+        return -1;
+    }
 
     // Configure curl for PUT with multipart body and perform request
     curl_easy_setopt(curl, CURLOPT_URL, url);
@@ -453,7 +488,17 @@ extern torrent_dto_t* api_upload_torrent(const torrent_upload_t* upload,
     // Set up headers and response buffer
     struct curl_slist* headers = NULL;
     headers = curl_slist_append(headers, "Accept: application/json");
-    headers = api_auth_headers(headers);
+    api_result_e auth_result = api_auth_headers(&headers);
+    if (auth_result != API_OK) {
+        curl_mime_free(mime);
+        curl_slist_free_all(headers);
+        curl_easy_cleanup(curl);
+        g_free(json_str);
+        if (result)
+            *result = auth_result;
+
+        return NULL;
+    }
 
     response_buf_t response = response_buf_init();
 
