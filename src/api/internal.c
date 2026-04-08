@@ -1,3 +1,4 @@
+#include <errno.h>
 #include <glib.h>
 #include <stdio.h>
 #include <string.h>
@@ -50,8 +51,6 @@ extern char* api_get_base_url() {
     // If not set, use the default
     if (!endpoint_url) {
         endpoint_url = g_strdup(DEFAULT_API_URL);
-        g_print("Network API URL not set in config, using default: %s\n",
-                DEFAULT_API_URL);
     }
 
     // Remove trailing slashes
@@ -63,22 +62,40 @@ extern char* api_get_base_url() {
     return endpoint_url;
 }
 
-extern char* api_get_token() {
-    return config_get(CONFIG_SCOPE_LOCAL,
-                      &(config_id_t){.group = "auth", .key = "access_token"},
-                      NULL);
-}
+extern api_result_e api_auth_headers(struct curl_slist** headers) {
+    api_result_e result = API_OK;
 
-extern struct curl_slist* api_auth_headers(struct curl_slist* headers) {
-    char* token = api_get_token();
-    if (token && token[0]) {
-        char* hdr = g_strdup_printf("Authorization: Bearer %s", token);
-        headers = curl_slist_append(headers, hdr);
-        g_free(hdr);
+    char* token = config_get(
+        CONFIG_SCOPE_LOCAL,
+        &(config_id_t){.group = "auth", .key = "access_token"}, NULL);
+
+    char* expires =
+        config_get(CONFIG_SCOPE_LOCAL,
+                   &(config_id_t){.group = "auth", .key = "expires"}, NULL);
+
+    time_t exp = 0;
+    time_t now = time(NULL);
+
+    if (!token || !token[0]) {
+        g_printerr("Not authenticated. Please run 'gittor login' to login.\n");
+        result = API_AUTH_MISSING;
+    } else if (parse_expiry_epoch(expires, &exp)) {
+        g_printerr("Invalid token expiry in config. Please log in again.\n");
+        result = API_AUTH_INVALID_FORMAT;
+    } else if (exp <= now) {
+        g_printerr(
+            "Session expired. Please run 'gittor login' to authenticate "
+            "again.\n");
+        result = API_AUTH_EXPIRED;
+    } else {
+        char* header = g_strdup_printf("Authorization: Bearer %s", token);
+        *headers = curl_slist_append(*headers, header);
+        g_free(header);
     }
 
     g_free(token);
-    return headers;
+    g_free(expires);
+    return result;
 }
 
 extern CURL* api_curl_handle_new() {
@@ -144,16 +161,16 @@ extern api_result_e api_check_response(CURL* curl, CURLcode res) {
 }
 
 extern int parse_expiry_epoch(const char* expires, time_t* epoch_out) {
-    if (!expires || expires[0] == '\0' || !epoch_out) {
+    if (!expires || !expires[0] || !epoch_out) {
         return EINVAL;
     }
 
-    errno = 0;
-    char* endptr = NULL;
-    gint64 value = g_ascii_strtoll(expires, &endptr, 10);
-    if (errno != 0 || endptr == expires || *endptr != '\0' || value < 0)
+    GDateTime* dt = g_date_time_new_from_iso8601(expires, NULL);
+    if (!dt)
         return EINVAL;
 
-    *epoch_out = (time_t)value;
+    *epoch_out = (time_t)g_date_time_to_unix(dt);
+    g_date_time_unref(dt);
+
     return 0;
 }
