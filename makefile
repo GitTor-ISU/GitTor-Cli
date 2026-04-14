@@ -54,7 +54,7 @@ TEST_DEFS := $(foreach mock, $(MOCKS), -D$(mock))
 
 # Dependencies
 ifneq ($(OS),Windows_NT)
-PKGS := libtorrent-rasterbar glib-2.0 gio-2.0 libgit2 libcurl gpgme
+PKGS := libtorrent-rasterbar glib-2.0 gio-2.0 libgit2 libcurl json-glib-1.0 gpgme
 LIBS := $(if $(PKGS),$(shell pkg-config --cflags --libs $(PKGS)))
 endif
 
