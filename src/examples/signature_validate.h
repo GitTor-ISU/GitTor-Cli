@@ -1,7 +1,6 @@
-#ifndef _WIN32
-
 #ifndef EXAMPLES_SIGNATURE_VALIDATE_H_
 #define EXAMPLES_SIGNATURE_VALIDATE_H_
+#ifndef _WIN32
 
 #include <git2.h>
 #include <gpgme.h>
@@ -15,6 +14,5 @@ extern int verify_commit_signature(gpgme_ctx_t ctx,
                                    const char* commit_hash);
 extern gpgme_ctx_t setup_isolated_gpg_context(const char* keys_file_path);
 
+#endif  // _WIN32
 #endif  // EXAMPLES_SIGNATURE_VALIDATE_H_
-
-#endif
