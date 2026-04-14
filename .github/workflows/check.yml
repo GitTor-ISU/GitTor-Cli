@@ -24,10 +24,10 @@ jobs:
         uses: actions/cache@v3
         with:
           path: ~/.cache/pip
-          key: cpplint-cache
+          key: cpplint-cache-${{ hashFiles('requirements.txt') }}
 
-      - name: Install cpplint
-        run: pip install cpplint
+      - name: Install packages
+        run: pip install -r requirements.txt
 
       - name: Lint Check
         run: |

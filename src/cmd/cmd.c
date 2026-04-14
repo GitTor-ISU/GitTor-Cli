@@ -15,6 +15,7 @@
 #include "examples/tor.h"
 #include "init/init.h"
 #include "leech/leech.h"
+#include "login/login.h"
 #include "seed/seed.h"
 #include "service/service.h"
 #include "verify/verify.h"
@@ -28,6 +29,7 @@ static const char doc[] =
     "\n"
     "  init     Create an empty GitTor repository\n"
     "  leech    Clone a GitTor repository into a new directory\n"
+    "  login    Authenticate with the GitTor server\n"
     "  seed     Share the current state of the repository\n"
     "  devs     Manage who can contribute to this repository\n"
     "  verify   Verify all commits are from authorized developers\n"
@@ -72,6 +74,8 @@ static error_t parse_opt(int key, char* arg, struct argp_state* state) {
                 return gittor_leech(state);
             } else if (strcmp(arg, "seed") == 0) {
                 return gittor_seed(state);
+            } else if (strcmp(arg, "login") == 0) {
+                return gittor_login(state);
             } else if (strcmp(arg, "devs") == 0) {
                 return gittor_devs(state);
             } else if (strcmp(arg, "verify") == 0) {
