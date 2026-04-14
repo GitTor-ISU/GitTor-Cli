@@ -5,7 +5,6 @@
 #include <gpgme.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <string.h>
 #include <unistd.h>
 #include <examples/signature_extract.h>
 #include <examples/signature_validate.h>

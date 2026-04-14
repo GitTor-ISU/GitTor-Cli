@@ -35,8 +35,8 @@ int main(int argc, char** argv) {
         return 1;
     }
 
-    printf("Found repo: %s\n", repo_path);
-    printf("Found HEAD commit: %s\n", commit_sha);
+    g_print("Found repo: %s\n", repo_path);
+    g_print("Found HEAD commit: %s\n", commit_sha);
 
     // 4. Extract the signature using the discovered info
     char* signature = signature_extract(repo_path, commit_sha);
@@ -77,6 +77,16 @@ int main(int argc, char** argv) {
     git_libgit2_shutdown();
 
     return result == 0 ? 0 : 1;
+}
+
+#else
+
+#include <glib.h>
+
+int main(__attribute__((__unused__)) int argc,
+         __attribute__((__unused__)) char** argv) {
+    g_printerr(
+        "Error: Unsupported Operation. GPG library not supported on Windows.");
 }
 
 #endif
