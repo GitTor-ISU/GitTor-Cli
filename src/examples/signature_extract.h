@@ -1,3 +1,5 @@
+#ifndef _WIN32
+
 #ifndef EXAMPLES_SIGNATURE_EXTRACT_H_
 #define EXAMPLES_SIGNATURE_EXTRACT_H_
 
@@ -6,3 +8,5 @@ extern char* get_head_commit_sha(git_repository* repo);
 extern char* find_git_repo_path(void);
 
 #endif  // EXAMPLES_SIGNATURE_EXTRACT_H_
+
+#endif

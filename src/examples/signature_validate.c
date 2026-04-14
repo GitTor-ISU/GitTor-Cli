@@ -1,3 +1,5 @@
+#ifndef _WIN32
+
 #include <git2.h>
 #include <glib.h>
 #include <gpgme.h>
@@ -107,3 +109,5 @@ int verify_commit_signature(gpgme_ctx_t ctx,
 
     return is_valid ? 0 : -1;
 }
+
+#endif

@@ -1,3 +1,5 @@
+#ifndef _WIN32
+
 #ifndef EXAMPLES_SIGNATURE_VALIDATE_H_
 #define EXAMPLES_SIGNATURE_VALIDATE_H_
 
@@ -14,3 +16,5 @@ extern int verify_commit_signature(gpgme_ctx_t ctx,
 extern gpgme_ctx_t setup_isolated_gpg_context(const char* keys_file_path);
 
 #endif  // EXAMPLES_SIGNATURE_VALIDATE_H_
+
+#endif

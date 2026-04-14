@@ -1,3 +1,5 @@
+#ifndef _WIN32
+
 #include <git2.h>
 #include <glib.h>
 #include <stdio.h>
@@ -76,3 +78,5 @@ int main(int argc, char** argv) {
 
     return result == 0 ? 0 : 1;
 }
+
+#endif

@@ -1,3 +1,5 @@
+#ifndef _WIN32
+
 #include <git2.h>
 #include <glib.h>
 #include <stdio.h>
@@ -137,3 +139,5 @@ char* signature_extract(const char* repo_path, const char* commit_sha) {
 
     return signature_string;
 }
+
+#endif
