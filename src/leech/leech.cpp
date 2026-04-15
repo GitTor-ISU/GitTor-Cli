@@ -27,7 +27,7 @@
 #include <libtorrent/write_resume_data.hpp>
 
 extern "C" {
-#include "leech/leech.h"
+#include "api/torrents.h"
 #include "leech/leech_internal.h"
 #include "utils/utils.h"
 }
@@ -106,12 +106,30 @@ std::string sanitize_file_name(const std::string& input) {
 
 extern "C" int leech_repository(const char* key, key_type_e type) try {
     const std::string dir = gittor_remote_dir();
+    std::string torrent_file_path;
 
     // Load the torrent
     lt::add_torrent_params atp;
     switch (type) {
-        case REPO_ID:
-            throw std::logic_error("Function not implemented");
+        case REPO_ID: {
+            api_result_e result = API_OK;
+            torrent_dto_t* torrent = api_get_torrent_by_repo_id(key, &result);
+            if (!torrent) {
+                throw std::runtime_error(
+                    "Failed to fetch torrent by repository id");
+            }
+
+            torrent_file_path = dir + key + std::string(".torrent");
+            if (api_get_torrent_file(torrent->id, torrent_file_path.c_str(),
+                                     &result) != 0) {
+                torrent_dto_free(torrent);
+                throw std::runtime_error("Failed to download torrent file");
+            }
+
+            torrent_dto_free(torrent);
+            atp = lt::load_torrent_file(torrent_file_path);
+            break;
+        }
         case MAGNET_LINK:
             atp = lt::parse_magnet_uri(key);
             break;

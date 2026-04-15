@@ -210,6 +210,8 @@ extern int gittor_seed(struct argp_state* state) {
         g_printerr("Error (%d): Failed to communicate with API.\n", err);
     }
 
+    printf("Seeding Repository %s!\n", repo_id_str);
+
 end:
     if (err < 0) {
         const git_error* e = git_error_last();

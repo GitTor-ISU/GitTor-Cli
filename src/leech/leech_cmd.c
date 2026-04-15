@@ -11,6 +11,7 @@
 #include "cmd/cmd.h"
 #include "leech/leech.h"
 #include "leech/leech_internal.h"
+#include "utils/utils.h"
 
 #define KEY_USAGE 1
 
@@ -22,6 +23,8 @@ struct leech_arguments {
 
 static error_t parse_opt(int key, char* arg, struct argp_state* state);
 static key_type_e key_type(const char* key);
+static int get_repo_id(char* str, size_t n, const char* pat);
+static const char* key_type_name(key_type_e type);
 
 static struct argp_option options[] = {
     {"help", '?', NULL, 0, "Give this help list", -2},
@@ -30,7 +33,9 @@ static struct argp_option options[] = {
 
 static char doc[] = "Downloads a repository given its key.";
 
-static struct argp argp = {options, parse_opt, "<KEY>", doc, NULL, NULL, NULL};
+static struct argp argp = {options, parse_opt, "[KEY]", doc, NULL, NULL, NULL};
+
+static char inferred_repo_id[GIT_OID_HEXSZ + 1];
 
 static bool helped;
 static error_t parse_opt(int key, char* arg, struct argp_state* state) {
@@ -60,8 +65,18 @@ static error_t parse_opt(int key, char* arg, struct argp_state* state) {
             break;
         case ARGP_KEY_END:
             if (state->arg_num == 0 && !helped) {
-                argp_help(&argp, stdout, ARGP_HELP_STD_USAGE, state->name);
-                return EINVAL;
+                int err =
+                    get_repo_id(inferred_repo_id, sizeof(inferred_repo_id),
+                                args->global->path);
+                if (err < 0) {
+                    const git_error* e = git_error_last();
+                    if (e) {
+                        printf("Error %d/%d: %s\n", err, e->klass, e->message);
+                    }
+                }
+
+                args->key = inferred_repo_id;
+                args->type = REPO_ID;
             }
             break;
         case KEY_USAGE:
@@ -98,7 +113,6 @@ extern int gittor_leech(struct argp_state* state) {
     // Stub output for template
     if (!err) {
         leech_repository(args.key, args.type);
-        printf("leeched!\n");
     }
 
     // Reset back to global
@@ -141,4 +155,55 @@ static key_type_e key_type(const char* key) {
     }
 
     return INVALID;
+}
+
+static int get_repo_id(char* str, size_t n, const char* path) {
+    int err = 0;
+    int ret = -1;
+    git_repository* repo = NULL;
+    git_oid repo_id;
+
+    // Initialize libgit2
+    ret = git_libgit2_init();
+    if (ret < 0) {
+        err = ret;
+    }
+
+    // Open the local repository
+    if (!err) {
+        err = git_repository_open(&repo, path);
+    }
+
+    // Get the repo ID
+    if (!err) {
+        err = gittor_get_repo_id(&repo_id, repo);
+    }
+
+    // Convert ID to string
+    if (!err) {
+        git_oid_tostr(str, n, &repo_id);
+    }
+
+    if (ret > 0) {
+        git_libgit2_shutdown();
+    }
+    git_repository_free(repo);
+
+    return err;
+}
+
+// TODO remove
+__attribute__((__unused__)) static const char* key_type_name(key_type_e type) {
+    switch (type) {
+        case REPO_ID:
+            return "REPO_ID";
+        case MAGNET_LINK:
+            return "MAGNET_LINK";
+        case TORRENT_PATH:
+            return "TORRENT_PATH";
+        case INVALID:
+            return "INVALID";
+        default:
+            return "UNKNOWN";
+    }
 }
