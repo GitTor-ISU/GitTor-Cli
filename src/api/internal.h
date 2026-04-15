@@ -8,7 +8,7 @@
 /**
  * @brief Result codes for API operations
  */
-typedef enum {
+typedef enum __attribute__((packed)) {
     API_OK = 0,
     API_BAD_REQUEST,
     API_NOT_FOUND,

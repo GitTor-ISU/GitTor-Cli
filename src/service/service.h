@@ -2,6 +2,7 @@
 #define SERVICE_SERVICE_H_
 
 #include <argp.h>
+#include <glib.h>
 #include <stdbool.h>
 
 /**

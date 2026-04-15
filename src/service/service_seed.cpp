@@ -194,12 +194,7 @@ extern "C" gpointer handle_seeding(gpointer data) {
     }
 
     // Configure the session
-    gchar* ses_path = g_build_filename(dir, ".session", NULL);
-    lt::entry::preformatted_type session_params = load_file(ses_path);
-    g_free(ses_path);
-    lt::session_params params = session_params.empty()
-                                    ? lt::session_params()
-                                    : lt::read_session_params(session_params);
+    lt::session_params params = lt::session_params();
     params.settings.set_int(lt::settings_pack::alert_mask,
                             lt::alert_category::error |
                                 lt::alert_category::storage |

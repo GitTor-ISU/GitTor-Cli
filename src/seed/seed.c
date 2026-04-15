@@ -1,6 +1,6 @@
 #include <git2.h>
 #include <glib.h>
-#include "seed/seed.h"
+#include "seed/seed.h"  // IWYU pragma: keep
 #include "seed/seed_internals.h"
 #include "service/service.h"
 

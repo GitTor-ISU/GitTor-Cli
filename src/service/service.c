@@ -8,7 +8,6 @@
 #include <gio/gio.h>
 #include "service/service.h"
 #include "service/service_internals.h"
-#include "utils/utils.h"
 
 /// @brief Data passed to each client connection thread
 typedef struct {
