@@ -2,7 +2,9 @@
 #include <chrono>
 #include <csignal>
 #include <fstream>
+#include <glib.h>  // NOLINT(build/include_order)
 #include <iostream>
+#include <memory>
 #include <stdexcept>
 #include <string>
 #include <utility>
@@ -28,7 +30,9 @@
 
 extern "C" {
 #include "api/torrents.h"
+#include "leech/leech.h"  // IWYU pragma: keep
 #include "leech/leech_internal.h"
+#include "seed/seed.h"
 #include "utils/utils.h"
 }
 
@@ -102,11 +106,37 @@ std::string sanitize_file_name(const std::string& input) {
     return out;
 }
 
+void write_torrent_file(const std::string& path,
+                        const std::shared_ptr<const lt::torrent_info>& ti) {
+    if (!ti) {
+        return;
+    }
+
+    const lt::create_torrent ct(*ti);
+    const lt::entry e = ct.generate();
+    std::vector<char> data;
+    lt::bencode(std::back_inserter(data), e);
+
+    std::ofstream of(path, std::ios_base::binary);
+    of.unsetf(std::ios_base::skipws);
+    of.write(data.data(), static_cast<int>(data.size()));
+}
+
 }  // namespace
 
-extern "C" int leech_repository(const char* key, key_type_e type) try {
-    const std::string dir = gittor_remote_dir();
+extern "C" int leech_repository(const char* key,
+                                key_type_e type,
+                                char* output_path,
+                                size_t output_path_size) try {
+    std::string dir = gittor_remote_dir();
+    if (!dir.empty() && g_mkdir_with_parents(dir.c_str(), 0755) != 0) {
+        throw std::runtime_error("Failed to create remote directory: " + dir);
+    }
+    if (!dir.empty() && dir.back() != '/') {
+        dir.push_back('/');
+    }
     std::string torrent_file_path;
+    bool should_write_torrent_file = false;
 
     // Load the torrent
     lt::add_torrent_params atp;
@@ -132,9 +162,11 @@ extern "C" int leech_repository(const char* key, key_type_e type) try {
         }
         case MAGNET_LINK:
             atp = lt::parse_magnet_uri(key);
+            should_write_torrent_file = true;
             break;
         case TORRENT_PATH:
             atp = lt::load_torrent_file(key);
+            should_write_torrent_file = true;
             break;
         default:
             throw std::logic_error("Unknown key type");
@@ -150,7 +182,16 @@ extern "C" int leech_repository(const char* key, key_type_e type) try {
 
     // Sanitize it to name files off of
     torrent_name = sanitize_file_name(torrent_name);
-    std::cout << torrent_name << '\n';
+
+    gittor_seed_stop(torrent_name.c_str());
+
+    if (should_write_torrent_file) {
+        torrent_file_path = dir + torrent_name + ".torrent";
+        if (atp.ti) {
+            write_torrent_file(torrent_file_path, atp.ti);
+            should_write_torrent_file = false;
+        }
+    }
 
     // load session parameters
     std::vector<char> session_params =
@@ -204,6 +245,14 @@ extern "C" int leech_repository(const char* key, key_type_e type) try {
                     lt::alert_cast<lt::add_torrent_alert>(a)) {
                 h = at->handle;
             }
+            if (should_write_torrent_file) {
+                if (const lt::metadata_received_alert* md =
+                        lt::alert_cast<lt::metadata_received_alert>(a)) {
+                    write_torrent_file(torrent_file_path,
+                                       md->handle.torrent_file());
+                    should_write_torrent_file = false;
+                }
+            }
             // if we receive the finished alert or an error, we're done
             if (lt::alert_cast<lt::torrent_finished_alert>(a)) {
                 h.save_resume_data(lt::torrent_handle::only_if_modified |
@@ -242,7 +291,7 @@ extern "C" int leech_repository(const char* key, key_type_e type) try {
                 // we only have a single torrent, so we know which one
                 // the status is for
                 const lt::torrent_status& s = st->status[0];
-                std::cout << '\r' << state(s.state) << ' '
+                std::cout << '\r' << "Leech " << state(s.state) << ": "
                           << (s.download_payload_rate / 1000) << " kB/s "
                           << (s.total_done / 1000) << " kB ("
                           << (s.progress_ppm / 10000) << "%) downloaded ("
@@ -265,7 +314,7 @@ extern "C" int leech_repository(const char* key, key_type_e type) try {
     }
 
 done:
-    std::cout << "\nsaving session state" << '\n';
+    std::cout << "\rLeech complete. Saving session state...\x1b[K\n";
     {
         std::ofstream of((dir + torrent_name + ".session"),
                          std::ios_base::binary);
@@ -275,7 +324,16 @@ done:
         of.write(b.data(), static_cast<int>(b.size()));
     }
 
-    std::cout << "\ndone, shutting down" << '\n';
+    std::cout << "Closing leeching client...\n";
+
+    // Store the output path of the leeched bare repository
+    const std::string repo_path = dir + torrent_name;
+    if (output_path && output_path_size > 0) {
+        g_snprintf(output_path, output_path_size, "%s", repo_path.c_str());
+    }
+
+    gittor_seed_start(torrent_name.c_str());
+
     return 0;
 } catch (std::exception& e) {
     std::cerr << "Error Leeching: " << e.what() << '\n';

@@ -323,8 +323,8 @@ extern "C" gpointer handle_seeding(gpointer data) {
             switch (item->packet.type) {
                 case SEED_START: {
                     // Create the torrent file on disk
-                    gittor_remote_path(remote_dir, reinterpret_cast<git_oid*>(
-                                                       item->packet.data));
+                    gittor_remote_path(
+                        remote_dir, reinterpret_cast<char*>(item->packet.data));
                     create_torrent(remote_dir);
 
                     // Load the .torrent and add it to the session using a
@@ -357,8 +357,8 @@ extern "C" gpointer handle_seeding(gpointer data) {
                 }
 
                 case SEED_STOP: {
-                    gittor_remote_path(remote_dir, reinterpret_cast<git_oid*>(
-                                                       item->packet.data));
+                    gittor_remote_path(
+                        remote_dir, reinterpret_cast<char*>(item->packet.data));
                     const std::string torrent_path =
                         std::string(remote_dir) + ".torrent";
                     gchar* torrent_file = g_strdup(torrent_path.c_str());

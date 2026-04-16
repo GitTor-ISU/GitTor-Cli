@@ -20,7 +20,7 @@ struct config_arguments {
 static struct argp_option options[] = {
     {"global", 'g', 0, 0, "Use global (user-wide) configuration", 0},
     {"local", 'l', 0, 0, "Use local (repository-wide) configuration", 0},
-    {NULL}};
+    {NULL, 0, NULL, 0, NULL, 0}};
 
 static char doc[] =
     "Read and write global (user-wide) or local "

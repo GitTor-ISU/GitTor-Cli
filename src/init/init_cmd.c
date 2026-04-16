@@ -19,7 +19,7 @@ struct init_arguments {
 static struct argp_option options[] = {
     {"help", '?', NULL, 0, "Give this help list", -2},
     {"usage", KEY_USAGE, NULL, 0, "Give a short usage message", -1},
-    {NULL}};
+    {NULL, 0, NULL, 0, NULL, 0}};
 
 static char doc[] =
     "Initializes a new GitTor repository in the current directory.";

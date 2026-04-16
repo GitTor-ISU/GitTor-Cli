@@ -13,7 +13,7 @@ struct login_arguments {
     struct global_arguments* global;
 };
 
-static struct argp_option options[] = {{NULL}};
+static struct argp_option options[] = {{NULL, 0, NULL, 0, NULL, 0}};
 
 static char doc[] =
     "Login to GitTor. Prompts for email/username and password, then saves the "
