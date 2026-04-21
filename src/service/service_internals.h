@@ -3,7 +3,7 @@
 
 #include <glib.h>
 #include <gio/gio.h>
-#include <service/service.h>
+#include "service/service.h"
 
 /// @brief Magic value to sign the top of every header
 static const guint64 MAGIC = ((guint64)'g' << 40) | ((guint64)'i' << 32) |
@@ -21,12 +21,38 @@ typedef struct __attribute__((packed)) {
     gint64 len;
 } header_t;
 
-/// @brief Data passed to each client connection thread
+/// @brief Data passed to the seed thread on start
 typedef struct {
-    GSocket* client;
     /// @brief Call from thread to kill the service
     GCancellable* connection_cancellable;
-} client_thread_data_t;
+    /// @brief Queue of messages to be handled by the seed thread
+    GAsyncQueue* queue;
+} seed_thread_data_t;
+
+/// @brief Queue of data passed to the seed thread during runtime
+typedef struct {
+    packet_t packet;
+    GMutex mutex;
+    GCond cond;
+    bool ready;
+    int error_code;
+} seed_thread_queue_item_t;
+
+/**
+ * @brief Thread function to handle seeding torrent repositories
+ *
+ * @param data Torrent repositories
+ * @return gpointer NULL
+ */
+extern gpointer handle_seeding(gpointer data);
+
+/**
+ * @brief Create a .torrent file from a path
+ *
+ * @param path The folder to torrent
+ * @return int error code
+ */
+extern int create_torrent(char path[PATH_MAX]);
 
 /**
  * @brief Get the currently used port
@@ -59,4 +85,5 @@ extern int bind_port_in_range(GSocketAddress** addr,
                               GSocket* sock,
                               int start,
                               int end);
+
 #endif  // SERVICE_SERVICE_INTERNALS_H_

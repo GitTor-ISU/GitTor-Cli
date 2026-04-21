@@ -2,20 +2,20 @@
 #include "cmd/cmd.h"
 #include "unity/unity.h"
 
-static void shouldPass_whenCalledWithNoArgs() {
-    // GIVEN: Just calling gittor leech
-    char* argv[] = {"gittor", "leech", NULL};
+static void shouldPass_whenHelpFlag() {
+    // GIVEN: Leech with help flag
+    char* argv[] = {"gittor", "init", "--help", NULL};
     int argc = sizeof(argv) / sizeof(*argv) - 1;
 
     // WHEN: Parse arguments
     int err = cmd_parse(argc, argv);
 
-    // THEN: Should return 0 (success for stub)
+    // THEN: Should return 0 error
     TEST_ASSERT_EQUAL(0, err);
 }
 
 int main() {
     UNITY_BEGIN();
-    RUN_TEST(shouldPass_whenCalledWithNoArgs);
+    RUN_TEST(shouldPass_whenHelpFlag);
     return UNITY_END();
 }

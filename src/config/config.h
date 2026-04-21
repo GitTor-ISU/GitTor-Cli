@@ -4,7 +4,10 @@
 #include <argp.h>
 #include <glib.h>
 
-typedef enum { CONFIG_SCOPE_GLOBAL, CONFIG_SCOPE_LOCAL } config_scope_e;
+typedef enum __attribute__((packed)) {
+    CONFIG_SCOPE_GLOBAL,
+    CONFIG_SCOPE_LOCAL
+} config_scope_e;
 
 typedef struct {
     const gchar* group;

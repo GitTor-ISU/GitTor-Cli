@@ -1,4 +1,4 @@
-#include <errno.h>
+#include <errno.h>  // IWYU pragma: keep
 #include <glib.h>
 #include <stdio.h>
 #include <string.h>

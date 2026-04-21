@@ -1,23 +1,36 @@
+#include <cctype>
 #include <chrono>
 #include <csignal>
 #include <fstream>
 #include <iostream>
+#include <stdexcept>
 #include <string>
-#include <thread>
 #include <utility>
 #include <vector>
 #include <libtorrent/add_torrent_params.hpp>
 #include <libtorrent/alert_types.hpp>
+#include <libtorrent/bdecode.hpp>
 #include <libtorrent/bencode.hpp>
+#include <libtorrent/create_torrent.hpp>
+#include <libtorrent/entry.hpp>
 #include <libtorrent/error_code.hpp>
+#include <libtorrent/file_storage.hpp>
+#include <libtorrent/load_torrent.hpp>
 #include <libtorrent/magnet_uri.hpp>
 #include <libtorrent/read_resume_data.hpp>
 #include <libtorrent/session.hpp>
 #include <libtorrent/session_params.hpp>
+#include <libtorrent/span.hpp>
 #include <libtorrent/torrent_handle.hpp>
+#include <libtorrent/torrent_info.hpp>
 #include <libtorrent/torrent_status.hpp>
 #include <libtorrent/write_resume_data.hpp>
-#include "examples/tor.h"
+
+extern "C" {
+#include "leech/leech.h"
+#include "leech/leech_internal.h"
+#include "utils/utils.h"
+}
 
 namespace {
 
@@ -63,21 +76,67 @@ void sighandler(int) {
     shut_down = true;
 }
 
-}  // anonymous namespace
+std::string sanitize_file_name(const std::string& input) {
+    std::string out;
+    out.reserve(input.size());
 
-int torrent_example() try {
-    auto magnet_uri =
-        "magnet:?xt=urn:btih:2a8eae08a00f208af674595a5b45c40214ff24f3&xt=urn:"
-        "btmh:"
-        "122048d500835bed61c3ad2952c6999ee388dfe4846344ee3e1946f9f37733813daa&"
-        "tr=https%3a%2f%2ftracker.gcrenwp.top%3a443%2fannounce&tr=https%3a%2f%"
-        "2ftracker.moeblog.cn%3a443%2fannounce&tr=https%3a%2f%2ftr.highstar."
-        "shop%3a443%2fannounce&tr=https%3a%2f%2ftr.nyacat.pw%3a443%2fannounce";
+    bool last_was_sep = false;
+    for (const unsigned char c : input) {
+        if (std::isalnum(c) || c == '.' || c == '-' || c == '_') {
+            out.push_back(static_cast<char>(c));
+            last_was_sep = false;
+        } else if (!last_was_sep && !out.empty()) {
+            out.push_back('_');
+            last_was_sep = true;
+        }
+    }
 
-    const std::string dir = "tor/";
+    while (!out.empty() && (out.back() == '_' || out.back() == '.')) {
+        out.pop_back();
+    }
+
+    if (out.empty()) {
+        return "download";
+    }
+
+    return out;
+}
+
+}  // namespace
+
+extern "C" int leech_repository(const char* key, key_type_e type) try {
+    const std::string dir = gittor_remote_dir();
+
+    // Load the torrent
+    lt::add_torrent_params atp;
+    switch (type) {
+        case REPO_ID:
+            throw std::logic_error("Function not implemented");
+        case MAGNET_LINK:
+            atp = lt::parse_magnet_uri(key);
+            break;
+        case TORRENT_PATH:
+            atp = lt::load_torrent_file(key);
+            break;
+        default:
+            throw std::logic_error("Unknown key type");
+    }
+
+    // Get the torrent name
+    std::string torrent_name;
+    if (atp.ti) {
+        torrent_name = atp.ti->name();
+    } else {
+        torrent_name = atp.name;
+    }
+
+    // Sanitize it to name files off of
+    torrent_name = sanitize_file_name(torrent_name);
+    std::cout << torrent_name << '\n';
 
     // load session parameters
-    auto session_params = load_file((dir + ".session").c_str());
+    std::vector<char> session_params =
+        load_file((dir + torrent_name + ".session").c_str());
     lt::session_params params = session_params.empty()
                                     ? lt::session_params()
                                     : lt::read_session_params(session_params);
@@ -90,16 +149,15 @@ int torrent_example() try {
     clk::time_point last_save_resume = clk::now();
 
     // load resume data from disk and pass it in as we add the magnet link
-    auto buf = load_file((dir + ".resume_file").c_str());
+    std::vector<char> buf = load_file((dir + torrent_name + ".resume").c_str());
 
-    lt::add_torrent_params magnet = lt::parse_magnet_uri(magnet_uri);
     if (buf.size()) {
-        lt::add_torrent_params atp = lt::read_resume_data(buf);
-        if (atp.info_hashes == magnet.info_hashes)
-            magnet = std::move(atp);
+        lt::add_torrent_params atp_partial = lt::read_resume_data(buf);
+        if (atp_partial.info_hashes == atp.info_hashes)
+            atp = std::move(atp_partial);
     }
-    magnet.save_path = dir;  // save in current dir
-    ses.async_add_torrent(std::move(magnet));
+    atp.save_path = dir;
+    ses.async_add_torrent(std::move(atp));
 
     // this is the handle we'll set once we get the notification of it being
     // added
@@ -107,7 +165,6 @@ int torrent_example() try {
 
     std::signal(SIGINT, &sighandler);
 
-    // set when we're exiting
     bool done = false;
     for (;;) {
         std::vector<lt::alert*> alerts;
@@ -115,7 +172,7 @@ int torrent_example() try {
 
         if (shut_down) {
             shut_down = false;
-            auto const handles = ses.get_torrents();
+            const std::vector<lt::torrent_handle> handles = ses.get_torrents();
             if (handles.size() == 1) {
                 handles[0].save_resume_data(
                     lt::torrent_handle::only_if_modified |
@@ -124,8 +181,9 @@ int torrent_example() try {
             }
         }
 
-        for (lt::alert const* a : alerts) {
-            if (auto at = lt::alert_cast<lt::add_torrent_alert>(a)) {
+        for (const lt::alert* a : alerts) {
+            if (const lt::add_torrent_alert* at =
+                    lt::alert_cast<lt::add_torrent_alert>(a)) {
                 h = at->handle;
             }
             // if we receive the finished alert or an error, we're done
@@ -142,10 +200,12 @@ int torrent_example() try {
             }
 
             // when resume data is ready, save it
-            if (auto rd = lt::alert_cast<lt::save_resume_data_alert>(a)) {
-                std::ofstream of(dir + ".resume_file", std::ios_base::binary);
+            if (const lt::save_resume_data_alert* rd =
+                    lt::alert_cast<lt::save_resume_data_alert>(a)) {
+                std::ofstream of(dir + torrent_name + ".resume",
+                                 std::ios_base::binary);
                 of.unsetf(std::ios_base::skipws);
-                auto const b = write_resume_data_buf(rd->params);
+                const std::vector<char> b = write_resume_data_buf(rd->params);
                 of.write(b.data(), static_cast<int>(b.size()));
                 if (done)
                     goto done;
@@ -156,13 +216,14 @@ int torrent_example() try {
                     goto done;
             }
 
-            if (auto st = lt::alert_cast<lt::state_update_alert>(a)) {
+            if (const lt::state_update_alert* st =
+                    lt::alert_cast<lt::state_update_alert>(a)) {
                 if (st->status.empty())
                     continue;
 
                 // we only have a single torrent, so we know which one
                 // the status is for
-                lt::torrent_status const& s = st->status[0];
+                const lt::torrent_status& s = st->status[0];
                 std::cout << '\r' << state(s.state) << ' '
                           << (s.download_payload_rate / 1000) << " kB/s "
                           << (s.total_done / 1000) << " kB ("
@@ -188,16 +249,17 @@ int torrent_example() try {
 done:
     std::cout << "\nsaving session state" << '\n';
     {
-        std::ofstream of(dir + ".session", std::ios_base::binary);
+        std::ofstream of((dir + torrent_name + ".session"),
+                         std::ios_base::binary);
         of.unsetf(std::ios_base::skipws);
-        auto const b = write_session_params_buf(ses.session_state(),
-                                                lt::save_state_flags_t::all());
+        const std::vector<char> b = write_session_params_buf(
+            ses.session_state(), lt::save_state_flags_t::all());
         of.write(b.data(), static_cast<int>(b.size()));
     }
 
     std::cout << "\ndone, shutting down" << '\n';
     return 0;
 } catch (std::exception& e) {
-    std::cerr << "Error: " << e.what() << '\n';
+    std::cerr << "Error Leeching: " << e.what() << '\n';
     return 1;
 }

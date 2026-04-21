@@ -2,16 +2,26 @@
 #define SERVICE_SERVICE_H_
 
 #include <argp.h>
+#include <glib.h>
 #include <stdbool.h>
 
+/**
+ * @brief Packet types to send to the seeder service.
+ */
 typedef enum __attribute__((packed)) {
-    /// @brief End the current connection
-    END,
     /// @brief Kill the service
-    KILL,
-    PING,
+    SERVICE_KILL,
+    /// @brief End the current connection
+    SERVICE_END,
+    SERVICE_ERROR,
+    SERVICE_PING,
+    SEED_START,
+    SEED_STOP,
 } type_e;
 
+/**
+ * @brief Packet of data to send to the seeder service.
+ */
 typedef struct {
     void* data;
     ssize_t len;
@@ -25,6 +35,15 @@ typedef struct {
  * @return int error code
  */
 extern int gittor_service(struct argp_state* state);
+
+/**
+ * @brief Send a packet to the GitTor service. Starts service if not found.
+ *
+ * @param msg Message to send
+ * @param error Error output
+ * @return packet_t* Response
+ */
+extern packet_t* gittor_service_send(const packet_t* msg, GError** error);
 
 /**
  * @brief Main function for the GitTor service.

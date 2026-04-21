@@ -36,6 +36,10 @@ torrent_dto_t* parse_torrent_json(const char* json_str) {
         dto->description =
             g_strdup(json_object_get_string_member(root_obj, "description"));
 
+    if (json_object_has_member(root_obj, "repoId"))
+        dto->repo_id =
+            g_strdup(json_object_get_string_member(root_obj, "repoId"));
+
     if (json_object_has_member(root_obj, "fileSize"))
         dto->file_size = json_object_get_int_member(root_obj, "fileSize");
 
@@ -101,6 +105,9 @@ char* build_upload_json(const torrent_upload_t* upload) {
         json_builder_add_string_value(builder, upload->description);
     }
 
+    json_builder_set_member_name(builder, "repoId");
+    json_builder_add_string_value(builder, upload->repo_id);
+
     json_builder_end_object(builder);
 
     JsonGenerator* generator = json_generator_new();
@@ -142,6 +149,71 @@ extern torrent_dto_t* api_get_torrent(int64_t torrent_id,
     // Build the URL: /torrents/{id}
     char url[1024];
     if (api_build_url(url, sizeof(url), "/torrents/%" PRId64, torrent_id)) {
+        curl_easy_cleanup(curl);
+        if (result)
+            *result = API_SERVER_ERR;
+
+        return NULL;
+    }
+
+    // Set up headers and response buffer
+    struct curl_slist* headers = NULL;
+    headers = curl_slist_append(headers, "Accept: application/json");
+    api_result_e auth_result = api_auth_headers(&headers);
+    if (auth_result != API_OK) {
+        curl_slist_free_all(headers);
+        curl_easy_cleanup(curl);
+        if (result)
+            *result = auth_result;
+
+        return NULL;
+    }
+
+    response_buf_t response = response_buf_init();
+
+    // Set curl options and perform request
+    curl_easy_setopt(curl, CURLOPT_URL, url);
+    curl_easy_setopt(curl, CURLOPT_HTTPHEADER, headers);
+    curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, write_cb);
+    curl_easy_setopt(curl, CURLOPT_WRITEDATA, &response);
+
+    CURLcode res = curl_easy_perform(curl);
+    api_result_e check = api_check_response(curl, res);
+
+    curl_slist_free_all(headers);
+    curl_easy_cleanup(curl);
+
+    if (result)
+        *result = check;
+
+    if (check != API_OK) {
+        g_free(response.data);
+        return NULL;
+    }
+
+    // Parse JSON response into DTO
+    torrent_dto_t* dto = parse_torrent_json(response.data);
+    g_free(response.data);
+
+    if (!dto && result)
+        *result = API_SERVER_ERR;
+
+    return dto;
+}
+
+extern torrent_dto_t* api_get_torrent_by_repo_id(const char* repo_id,
+                                                 api_result_e* result) {
+    CURL* curl = api_curl_handle_new();
+    if (!curl) {
+        if (result)
+            *result = API_CURL_ERR;
+
+        return NULL;
+    }
+
+    // Build the URL: /torrents/repository/{id}
+    char url[1024];
+    if (api_build_url(url, sizeof(url), "/torrents/repository/%s", repo_id)) {
         curl_easy_cleanup(curl);
         if (result)
             *result = API_SERVER_ERR;

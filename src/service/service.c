@@ -1,3 +1,4 @@
+#include <git2.h>
 #include <glib.h>
 #include <inttypes.h>
 #include <stdbool.h>
@@ -8,6 +9,36 @@
 #include "service/service.h"
 #include "service/service_internals.h"
 
+/// @brief Data passed to each client connection thread
+typedef struct {
+    GSocket* client;
+    /// @brief Call from thread to kill the service
+    GCancellable* connection_cancellable;
+    /// @brief Queue of messages to be handled by the seed thread
+    GAsyncQueue* queue;
+} client_thread_data_t;
+
+/**
+ * @brief Send a reply to the client
+ *
+ * @param client Client to send reply to
+ * @param msg Reply message
+ * @param error error Error throws
+ */
+static void gittor_service_reply(GSocket* client,
+                                 const packet_t* msg,
+                                 GError** error) {
+    header_t header = {.type = msg->type, .len = msg->len, .magic = MAGIC};
+    g_socket_send(client, (void*)&header, sizeof(header), NULL, error);
+    if (*error) {
+        return;
+    }
+
+    if (msg->len > 0 && msg->data) {
+        g_socket_send(client, msg->data, header.len, NULL, error);
+    }
+}
+
 /**
  * @brief Thread function to handle a client connection to the service
  *
@@ -16,8 +47,11 @@
  */
 static gpointer handle_client(gpointer data) {
     GSocket* client = ((client_thread_data_t*)data)->client;
+    GAsyncQueue* queue = ((client_thread_data_t*)data)->queue;
     bool run_thread = true;
     void* buffer = NULL;
+    packet_t reply;
+    char reply_body[256];
 
     while (run_thread) {
         // Parse the header
@@ -58,42 +92,82 @@ static gpointer handle_client(gpointer data) {
             break;
         }
 
+        packet_t packet = {
+            .type = header.type, .len = header.len, .data = buffer};
+
         // Handle the message
-        switch (header.type) {
-            case KILL:
+        switch (packet.type) {
+            case SERVICE_KILL:
                 run_thread = false;
                 g_cancellable_cancel(
                     ((client_thread_data_t*)data)->connection_cancellable);
                 break;
-            case END:
+            case SERVICE_END:
                 run_thread = false;
                 break;
-            case PING:
+            case SERVICE_PING:
                 printf("[GitTor Service thread=%p] Recieved: '%s'\n",
                        (void*)g_thread_self(), (char*)buffer);
-                char ping[256];
-                header.len =
-                    g_snprintf(ping, sizeof(ping) - 1, "pid: %d thread: %p",
-                               getpid(), (void*)g_thread_self()) +
-                    1;
-                header.type = PING;
-                g_socket_send(client, (void*)&header, sizeof(header), NULL,
-                              &error);
+                reply.len = g_snprintf(reply_body, sizeof(reply_body) - 1,
+                                       "pid: %d thread: %p", getpid(),
+                                       (void*)g_thread_self()) +
+                            1;
+                reply.type = packet.type;
+                reply.data = reply_body;
+                gittor_service_reply(client, &reply, &error);
                 if (error) {
                     g_printerr(
-                        "[GitTor Service thread=%p] Reply body failed: %s\n",
+                        "[GitTor Service thread=%p] Reply failed: "
+                        "%s\n",
                         (void*)g_thread_self(), error->message);
                     run_thread = false;
-                    break;
+                }
+                break;
+            case SEED_START:
+            case SEED_STOP:
+                reply.len = -1;
+                reply.type = packet.type;
+                reply.data = NULL;
+
+                // Offload operations to the seed thread
+                seed_thread_queue_item_t* queue_item =
+                    (seed_thread_queue_item_t*)malloc(sizeof(*queue_item));
+                queue_item->packet = packet;
+                queue_item->ready = false;
+                g_mutex_init(&queue_item->mutex);
+                g_cond_init(&queue_item->cond);
+                g_async_queue_push(queue, queue_item);
+
+                // Wait for seed thread to finish
+                g_mutex_lock(&queue_item->mutex);
+                while (!queue_item->ready) {
+                    g_cond_wait(&queue_item->cond, &queue_item->mutex);
+                }
+                g_mutex_unlock(&queue_item->mutex);
+
+                // If the seeder service reports an error, throw it up
+                if (queue_item->error_code) {
+                    reply.type = SERVICE_ERROR;
                 }
 
-                g_socket_send(client, (void*)ping, header.len, NULL, &error);
+                gittor_service_reply(client, &reply, &error);
+                free(queue_item);
+                break;
+            default:
+                g_printerr("[GitTor Service thread=%p] Unhandled command: %d\n",
+                           (void*)g_thread_self(), packet.type);
+                reply.len = g_snprintf(reply_body, sizeof(reply_body) - 1,
+                                       "Unhandled command: %d", packet.type) +
+                            1;
+                reply.type = SERVICE_ERROR;
+                reply.data = reply_body;
+                gittor_service_reply(client, &reply, &error);
                 if (error) {
                     g_printerr(
-                        "[GitTor Service thread=%p] Reply body failed: %s\n",
+                        "[GitTor Service thread=%p] Reply failed: "
+                        "%s\n",
                         (void*)g_thread_self(), error->message);
                     run_thread = false;
-                    break;
                 }
                 break;
         }
@@ -158,9 +232,17 @@ extern int gittor_service_main() {
         return 1;
     }
 
-    // Establish connections
-    GPtrArray* threads = g_ptr_array_new();
+    GPtrArray* client_threads = g_ptr_array_new();
     GCancellable* cancellable = g_cancellable_new();
+    GAsyncQueue* queue = g_async_queue_new();
+
+    // Create the torrent seeding thread
+    seed_thread_data_t seed_data = {.connection_cancellable = cancellable,
+                                    .queue = queue};
+    GThread* seed_thread =
+        g_thread_new("handle_seeding", handle_seeding, &seed_data);
+
+    // Establish connections
     while (true) {
         // Accept a new connection
         GSocket* client = g_socket_accept(socket, cancellable, &error);
@@ -180,8 +262,18 @@ extern int gittor_service_main() {
         client_thread_data_t* data = g_malloc(sizeof(*data));
         data->client = client;
         data->connection_cancellable = cancellable;
-        g_ptr_array_add(threads,
-                        g_thread_new("client-handler", handle_client, data));
+        data->queue = queue;
+        g_ptr_array_add(client_threads,
+                        g_thread_new("handle_client", handle_client, data));
+
+        // Cleanup any dead connections
+        for (gint i = (gint)(client_threads->len - 1); i >= 0; i--) {
+            GThread* t = g_ptr_array_index(client_threads, i);
+            if (t->joinable) {
+                g_thread_join(t);
+                g_ptr_array_remove_index(client_threads, i);
+            }
+        }
     }
 
     // Notify that the service is not up
@@ -193,15 +285,17 @@ extern int gittor_service_main() {
         // No need to error, things will still work just not as well
     }
 
-    // Cleanup all threads
-    for (guint i = 0; i < threads->len; i++) {
-        g_thread_join(g_ptr_array_index(threads, i));
+    // Cleanup all client_threads
+    for (guint i = 0; i < client_threads->len; i++) {
+        g_thread_join(g_ptr_array_index(client_threads, i));
     }
+    g_thread_join(seed_thread);
 
-    g_ptr_array_free(threads, true);
+    g_ptr_array_free(client_threads, true);
     g_object_unref(socket);
     g_object_unref(address);
     g_object_unref(cancellable);
+    g_async_queue_unref(queue);
     return 0;
 }
 

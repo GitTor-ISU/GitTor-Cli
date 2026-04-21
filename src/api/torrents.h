@@ -12,6 +12,7 @@ typedef struct {
     int64_t id;
     char* name;
     char* description;
+    char* repo_id;
     int64_t file_size;
     int32_t uploader_id;
     char* uploader_username;
@@ -34,6 +35,7 @@ typedef struct {
 typedef struct {
     const char* name;
     const char* description;
+    const char* repo_id;
     const char* file_path;
 } torrent_upload_t;
 
@@ -85,6 +87,17 @@ extern void torrent_dto_free(torrent_dto_t* dto);
 extern torrent_dto_t* api_get_torrent(int64_t torrent_id, api_result_e* result);
 
 /**
+ * @brief Get torrent metadata by the repository ID. GET
+ * /torrents/repository/{id}
+ *
+ * @param repo_id The first commit of the repository hash
+ * @param result Pointer to store the API result code
+ * @return torrent_dto_t* The torrent, or NULL on error. Caller must free with
+ * torrent_dto_free().
+ */
+extern torrent_dto_t* api_get_torrent_by_repo_id(const char* repo_id,
+                                                 api_result_e* result);
+/**
  * @brief Update torrent metadata with non-NULL fields. PUT /torrents/{id}
  *
  * @param torrent_id The torrent ID to update
@@ -123,9 +136,11 @@ extern int api_update_torrent_file(int64_t torrent_id,
                                    api_result_e* result);
 
 /**
- * @brief Upload a new torrent with metadata and .torrent file. POST /torrents
+ * @brief Upload a new torrent with metadata and .torrent file. POST
+ * /torrents
  *
- * @param upload The upload parameters (name, file_path, optional description)
+ * @param upload The upload parameters (name, file_path, optional
+ * description)
  * @param result Pointer to store the API result code
  * @return torrent_dto_t* The created torrent, or NULL on error. Caller must
  * free with torrent_dto_free().
