@@ -1,6 +1,7 @@
 #include <assert.h>
 #include <git2.h>
 #include <glib.h>
+#include <limits.h>
 #include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -8,7 +9,14 @@
 #include "api/torrents.h"
 #include "cmd/cmd.h"
 #include "seed/seed.h"
+#include "service/service_internals.h"
 #include "utils/utils.h"
+
+#ifndef URL_MAX
+#define MAGNET_URI_MAX 8192
+#else
+#define MAGNET_URI_MAX (URL_MAX * 2)
+#endif
 
 #define KEY_USAGE 1
 
@@ -207,7 +215,17 @@ extern int gittor_seed(struct argp_state* state) {
         g_printerr("Error (%d): Failed to communicate with API.\n", err);
     }
 
-    printf("Seeding Repository %s!\n", repo_id_str);
+    // Generate the magnet link from the torrent file
+    char magnet_link[MAGNET_URI_MAX] = {0};
+    err = get_magnet_link(torrent_file_path, magnet_link, sizeof(magnet_link));
+    if (err) {
+        g_printerr("Warning: Failed to generate magnet link.\n");
+    }
+
+    printf("Seeding Repository!\n");
+    printf("Repository ID: %s\n", repo_id_str);
+    printf("Torrent File: %s\n", torrent_file_path);
+    printf("Magnet Link: '%s'\n", magnet_link);
 
 end:
     if (err < 0) {

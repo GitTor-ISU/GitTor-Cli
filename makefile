@@ -512,6 +512,6 @@ $(SITE_PATH)index.html: $(TEST_LOGS)
 		--html-syntax-highlighting --output $(SITE_PATH)/index.html \
 		--exclude-throw-branches
 
-.PHONY: clean default dev prod test report compdb lint format
+.PHONY: clean default dev prod test report lint format
 
 .PRECIOUS: $(OBJS_PROD) $(OBJS_DEV) $(OBJS_TEST) $(OUTS_TEST) $(OBJS_COV)

@@ -1,6 +1,7 @@
 #include <chrono>
 #include <csignal>
 #include <deque>
+#include <errno.h>     // NOLINT(build/include_order)
 #include <filesystem>  // NOLINT(build/c++17)
 #include <fstream>
 #include <git2.h>  // NOLINT(build/include_order)
@@ -447,4 +448,20 @@ extern "C" int create_torrent(char path[PATH_MAX]) try {
 } catch (std::exception& e) {
     std::cerr << "Error Creating Torrent: " << e.what() << '\n';
     return 1;
+}
+
+extern "C" int get_magnet_link(const char* torrent_path,
+                               char* out_magnet,
+                               size_t out_size) try {
+    if (!torrent_path || !out_magnet || !out_size) {
+        return EINVAL;
+    }
+
+    const lt::add_torrent_params atp = lt::load_torrent_file(torrent_path);
+    const std::string magnet = lt::make_magnet_uri(atp);
+
+    return g_strlcpy(out_magnet, magnet.c_str(), out_size) != magnet.length();
+} catch (std::exception& e) {
+    std::cerr << "Error Generating Magnet Link: " << e.what() << '\n';
+    return -1;
 }
