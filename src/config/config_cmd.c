@@ -7,6 +7,8 @@
 #include "cmd/cmd.h"
 #include "config/config.h"
 
+#define KEY_USAGE 1
+
 static error_t parse_opt(int key, char* arg, struct argp_state* state);
 
 struct config_arguments {
@@ -20,7 +22,9 @@ struct config_arguments {
 static struct argp_option options[] = {
     {"global", 'g', 0, 0, "Use global (user-wide) configuration", 0},
     {"local", 'l', 0, 0, "Use local (repository-wide) configuration", 0},
-    {NULL}};
+    {"help", '?', NULL, 0, "Give this help list", -2},
+    {"usage", KEY_USAGE, NULL, 0, "Give a short usage message", -1},
+    {NULL, 0, NULL, 0, NULL, 0}};
 
 static char doc[] =
     "Read and write global (user-wide) or local "
@@ -29,6 +33,7 @@ static char doc[] =
 static struct argp argp = {options, parse_opt, "<key> [<value>]", doc, NULL,
                            NULL,    NULL};
 
+static bool helped;
 static error_t parse_opt(int key, char* arg, struct argp_state* state) {
     struct config_arguments* args = state->input;
 
@@ -41,8 +46,16 @@ static error_t parse_opt(int key, char* arg, struct argp_state* state) {
             args->use_local_scope = true;
             break;
 
+        case '?':
+            argp_help(&argp, stdout, ARGP_HELP_STD_HELP, state->name);
+            helped = true;
+            break;
+
         case ARGP_KEY_ARG:
             // Handle positional arguments
+            if (helped) {
+                break;
+            }
             if (state->arg_num == 0) {
                 args->key = arg;  // key
             } else if (state->arg_num == 1) {
@@ -54,10 +67,15 @@ static error_t parse_opt(int key, char* arg, struct argp_state* state) {
 
         case ARGP_KEY_END:
             // Validate that we have at least the key
-            if (!args->key) {
+            if (!args->key && !helped) {
                 argp_error(state, "Missing required <key> argument.\n");
                 return EINVAL;
             }
+            break;
+
+        case KEY_USAGE:
+            argp_help(&argp, stdout, ARGP_HELP_STD_USAGE, state->name);
+            helped = true;
             break;
 
         default:
@@ -73,6 +91,7 @@ extern int gittor_config(struct argp_state* state) {
                                     .use_local_scope = false,
                                     .key = NULL,
                                     .value = NULL};
+    helped = false;
 
     // Change the arguments array for just config
     int argc = state->argc - state->next + 1;
@@ -88,7 +107,7 @@ extern int gittor_config(struct argp_state* state) {
 
     // Parse arguments
     int err = argp_parse(&argp, argc, argv, ARGP_NO_EXIT, 0, &args);
-    if (err) {
+    if (err || helped) {
         free(argv[0]);
         argv[0] = argv0;
         state->next += argc - 1;
