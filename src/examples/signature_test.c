@@ -1,10 +1,13 @@
+#ifndef _WIN32
+
 #include <git2.h>
 #include <glib.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include "examples/signature_extract.h"
+#include "examples/signature_validate.h"
 
-int main() {
+int main(int argc, char** argv) {
     git_libgit2_init();
 
     // 1. Discover the repository path
@@ -32,24 +35,58 @@ int main() {
         return 1;
     }
 
-    printf("Found repo: %s\n", repo_path);
-    printf("Found HEAD commit: %s\n", commit_sha);
+    g_print("Found repo: %s\n", repo_path);
+    g_print("Found HEAD commit: %s\n", commit_sha);
 
     // 4. Extract the signature using the discovered info
     char* signature = signature_extract(repo_path, commit_sha);
 
     if (signature) {
-        printf("\n--- GPG Signature ---\n%s\n", signature);
+        g_printerr("\n--- GPG Signature ---\n%s\n", signature);
         free(signature);
     } else {
         g_printerr("\nCould not retrieve signature for HEAD commit.\n");
     }
 
-    // 5. Cleanup
+    if (argc != 2) {
+        g_printerr("Usage: %s <path_to_keys.asc> \n", argv[0]);
+        return 1;
+    }
+
+    const char* keys_file = argv[1];
+    const char* commit_hash = commit_sha;
+
+    git_libgit2_init();
+
+    gpgme_ctx_t gpg_ctx = setup_isolated_gpg_context(keys_file);
+    if (!gpg_ctx)
+        return 1;
+
+    if (git_repository_open(&repo, repo_path) < 0) {
+        g_printerr("Could not open repository at %s\n", repo_path);
+        return 1;
+    }
+
+    int result = verify_commit_signature(gpg_ctx, repo, commit_hash);
+
+    // Cleanup
     free(commit_sha);
-    git_repository_free(repo);
     free(repo_path);
+    git_repository_free(repo);
+    gpgme_release(gpg_ctx);
     git_libgit2_shutdown();
 
-    return 0;
+    return result == 0 ? 0 : 1;
 }
+
+#else
+
+#include <glib.h>
+
+int main(__attribute__((__unused__)) int argc,
+         __attribute__((__unused__)) char** argv) {
+    g_printerr(
+        "Error: Unsupported Operation. GPG library not supported on Windows.");
+}
+
+#endif

@@ -13,4 +13,5 @@
 - `libglib2.0-dev`
 - `libgit2-dev`
 - `libcurl4-openssl-dev`
-- `libjson-glib-dev`
+- 'libjson-glib-dev'
+- 'libgpgme-dev'
