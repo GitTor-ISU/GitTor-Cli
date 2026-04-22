@@ -7,13 +7,18 @@
 #include "config/config.h"
 #include "login/login.h"
 
+#define KEY_USAGE 1
+
 static error_t parse_opt(int key, char* arg, struct argp_state* state);
 
 struct login_arguments {
     struct global_arguments* global;
 };
 
-static struct argp_option options[] = {{NULL, 0, NULL, 0, NULL, 0}};
+static struct argp_option options[] = {
+    {"help", '?', NULL, 0, "Give this help list", -2},
+    {"usage", KEY_USAGE, NULL, 0, "Give a short usage message", -1},
+    {NULL, 0, NULL, 0, NULL, 0}};
 
 static char doc[] =
     "Login to GitTor. Prompts for email/username and password, then saves the "
@@ -21,10 +26,27 @@ static char doc[] =
 
 static struct argp argp = {options, parse_opt, "", doc, NULL, NULL, NULL};
 
+static bool helped;
 static error_t parse_opt(int key,
                          __attribute__((__unused__)) char* arg,
                          __attribute__((__unused__)) struct argp_state* state) {
     switch (key) {
+        case '?':
+            argp_help(&argp, stdout, ARGP_HELP_STD_HELP, state->name);
+            helped = true;
+            break;
+
+        case KEY_USAGE:
+            argp_help(&argp, stdout, ARGP_HELP_STD_USAGE, state->name);
+            helped = true;
+            break;
+
+        case ARGP_KEY_ARG:
+            if (helped) {
+                break;
+            }
+            return E2BIG;
+
         default:
             return ARGP_ERR_UNKNOWN;
     }
@@ -35,6 +57,7 @@ static error_t parse_opt(int key,
 extern int gittor_login(struct argp_state* state) {
     // Set defaults arguments for login argumnets
     struct login_arguments args = {0};
+    helped = false;
 
     // Prepare arguments array for just login
     int argc = state->argc - state->next + 1;
@@ -50,7 +73,7 @@ extern int gittor_login(struct argp_state* state) {
 
     // Parse arguments
     int err = argp_parse(&argp, argc, argv, ARGP_NO_EXIT, 0, &args);
-    if (err) {
+    if (err || helped) {
         free(argv[0]);
         argv[0] = argv0;
         state->next += argc - 1;
