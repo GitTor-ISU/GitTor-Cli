@@ -1,12 +1,15 @@
 #include <git2.h>
 #include <glib.h>
 #include <stdio.h>
+#include <string.h>
+#include <git2/oid.h>
 #include "utils/utils.h"
 
-extern int gittor_get_repo_id(git_oid* repo_id, git_repository* repo) {
+extern int gittor_get_repo_id(char* str, size_t n, git_repository* repo) {
     int error = 0;
     git_revwalk* walk = NULL;
     git_commit* commit = NULL;
+    git_oid repo_id;
 
     // Initialize libgit2
     int ret = git_libgit2_init();
@@ -25,9 +28,13 @@ extern int gittor_get_repo_id(git_oid* repo_id, git_repository* repo) {
     }
 
     if (!error) {
-        while (!git_revwalk_next(repo_id, walk)) {
+        while (!git_revwalk_next(&repo_id, walk)) {
         }
-        error = git_commit_lookup(&commit, repo, repo_id);
+        error = git_commit_lookup(&commit, repo, &repo_id);
+    }
+
+    if (!error) {
+        git_oid_tostr(str, n, &repo_id);
     }
 
     git_revwalk_free(walk);

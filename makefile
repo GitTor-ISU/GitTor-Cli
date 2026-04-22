@@ -363,6 +363,28 @@ test: $(TEST_LOGS)
 # Coverage report
 report: $(SITE_PATH)index.html
 
+# Generate compile_commands.json for clangd
+compile_commands.json: $(SRCS) $(TEST_SRCS)
+	@echo '[' > $@
+	@first=1; \
+	for src in $(SRCS) $(TEST_SRCS); do \
+		if [ $$first -eq 0 ]; then printf ',\n' >> $@; fi; \
+		first=0; \
+		if echo "$$src" | grep -q '\.cpp$$'; then \
+			cmd="$(CXX)"; \
+		else \
+			cmd="$(CC)"; \
+		fi; \
+		if echo "$(TEST_SRCS)" | grep -wq "$$src"; then \
+			flags="$(CFLAGS) $(DEV_FLAGS) $(TEST_DEFS) $(INCS) $(TEST_INCS) $(LIBS)"; \
+		else \
+			flags="$(CFLAGS) $(INCS) $(LIBS)"; \
+		fi; \
+		printf '  {"directory":"$(ROOT)","file":"%s","command":"%s %s"}' \
+			"$$src" "$$cmd" "$$flags" >> $@; \
+	done
+	@echo '\n]' >> $@
+
 # Linting check
 lint:
 	cpplint --filter=-legal/copyright --root=$(SRC_PATH) $(SRCS)
@@ -454,7 +476,7 @@ $(OBJ_TEST_PATH)%.o: $(TEST_SRC_PATH)%.c $(HEDS) $(TEST_HEDS)
 $(OBJ_TEST_PATH)%.o: $(SRC_PATH)%.cpp $(HEDS)
 	$(call ensure-dir,$@)
 	$(call print-file,$(call relpath,$@))
-	@$(CXX) -c -o $@ $< $(CFLAGS) $(DEV_FLAGS) $(TEST_DEFS) $(INCS) $(LIBS)
+	@$(CXX) -c -o $@ $< $(CFLAGS) $(DEV_FLAGS) $(TEST_DEFS) $(INCS) $(TEST_INCS) $(LIBS)
 
 # Test - Run tests to generate logs
 $(OUT_TEST_PATH)%.log: $(OUT_TEST_PATH)%

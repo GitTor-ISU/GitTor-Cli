@@ -14,7 +14,7 @@ struct verify_arguments {
     GPtrArray* branch_names;
 };
 
-static struct argp_option options[] = {{NULL}};
+static struct argp_option options[] = {{NULL, 0, NULL, 0, NULL, 0}};
 
 static char doc[] =
     "Verifies that all commits on the specified branches (or all branches if "
