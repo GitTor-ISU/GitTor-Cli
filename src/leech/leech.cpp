@@ -30,6 +30,7 @@
 
 extern "C" {
 #include "api/torrents.h"
+#include "config/config.h"
 #include "leech/leech.h"  // IWYU pragma: keep
 #include "leech/leech_internal.h"
 #include "seed/seed.h"
@@ -203,6 +204,17 @@ extern "C" int leech_repository(const char* key,
                             lt::alert_category::error |
                                 lt::alert_category::storage |
                                 lt::alert_category::status);
+
+    // Set up network
+    const config_id_t port_config = {.group = "network", .key = "port"};
+    char* port_str = config_get(CONFIG_SCOPE_GLOBAL, &port_config, NULL);
+    if (port_str != NULL) {
+        const std::string listen_interfaces =
+            std::string("0.0.0.0:") + port_str;
+        params.settings.set_str(lt::settings_pack::listen_interfaces,
+                                listen_interfaces);
+        free(port_str);
+    }
 
     lt::session ses(params);
     clk::time_point last_save_resume = clk::now();
