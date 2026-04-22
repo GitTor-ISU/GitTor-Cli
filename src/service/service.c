@@ -2,7 +2,6 @@
 #include <glib.h>
 #include <inttypes.h>
 #include <stdbool.h>
-#include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
 #include <gio/gio.h>
@@ -104,24 +103,6 @@ static gpointer handle_client(gpointer data) {
                 break;
             case SERVICE_END:
                 run_thread = false;
-                break;
-            case SERVICE_PING:
-                printf("[GitTor Service thread=%p] Recieved: '%s'\n",
-                       (void*)g_thread_self(), (char*)buffer);
-                reply.len = g_snprintf(reply_body, sizeof(reply_body) - 1,
-                                       "pid: %d thread: %p", getpid(),
-                                       (void*)g_thread_self()) +
-                            1;
-                reply.type = packet.type;
-                reply.data = reply_body;
-                gittor_service_reply(client, &reply, &error);
-                if (error) {
-                    g_printerr(
-                        "[GitTor Service thread=%p] Reply failed: "
-                        "%s\n",
-                        (void*)g_thread_self(), error->message);
-                    run_thread = false;
-                }
                 break;
             case SEED_START:
             case SEED_STOP:

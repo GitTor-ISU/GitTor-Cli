@@ -44,18 +44,6 @@ static void shouldPass_whenServiceStatus() {
     TEST_ASSERT_EQUAL(0, err);
 }
 
-static void shouldPass_whenServicePing() {
-    // GIVEN: call ping
-    char* argv[] = {"gittor", "service", "ping", NULL};
-    int argc = sizeof(argv) / sizeof(*argv) - 1;
-
-    // WHEN: Parse arguments
-    int err = cmd_parse(argc, argv);
-
-    // THEN: Should return 0 error
-    TEST_ASSERT_EQUAL(0, err);
-}
-
 static void shouldPass_whenServiceStart() {
     // GIVEN: call start
     char* argv[] = {"gittor", "service", "start", NULL};
@@ -115,7 +103,6 @@ int main() {
     // ensure no memory errors
     GThread* t = g_thread_new("service-handler", handle_service, NULL);
     waitForServiceStarted();
-    RUN_TEST(shouldPass_whenServicePing);
     gittor_service_disconnect();
     gittor_service_disconnect();
     RUN_TEST(shouldPass_whenServiceStop);
@@ -123,9 +110,8 @@ int main() {
 
     RUN_TEST(shouldEsrch_whenUnknownCommand);
     RUN_TEST(shouldBeDown_whenGetStatus);
-    RUN_TEST(shouldPass_whenServicePing);
-    RUN_TEST(shouldBeUp_whenGetStatus);
     RUN_TEST(shouldPass_whenServiceStart);
+    RUN_TEST(shouldBeUp_whenGetStatus);
     RUN_TEST(shouldPass_whenServiceStatus);
     RUN_TEST(shouldPass_whenServiceStop);
     RUN_TEST(shouldPass_whenServiceRestart);

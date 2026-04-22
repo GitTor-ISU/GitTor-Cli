@@ -8,10 +8,6 @@
 #include "cmd/cmd.h"
 #include "config/config.h"
 #include "devs/devs.h"
-#include "examples/curl.h"
-#include "examples/git.h"
-#include "examples/ini_parser.h"
-#include "examples/tor.h"
 #include "init/init.h"
 #include "leech/leech.h"
 #include "login/login.h"
@@ -83,18 +79,6 @@ static error_t parse_opt(int key, char* arg, struct argp_state* state) {
                 return gittor_config(state);
             } else if (strcmp(arg, "service") == 0) {
                 return gittor_service(state);
-            } else if (strcmp(arg, "tor") == 0) {  // TODO(isaac): remove
-                torrent_example();
-                return 0;
-            } else if (strcmp(arg, "ini") == 0) {  // TODO(isaac): remove
-                ini_parse();
-                return 0;
-            } else if (strcmp(arg, "git") == 0) {  // TODO(isaac): remove
-                git_example();
-                return 0;
-            } else if (strcmp(arg, "www") == 0) {  // TODO(isaac): remove
-                curl_example();
-                return 0;
             } else {
                 argp_error(state, "%s is not a valid command", arg);
                 return ESRCH;

@@ -42,8 +42,6 @@ static error_t parse_opt(int key,
             } else if (strcmp(arg, "status") == 0) {
                 printf("%s\n", gittor_service_status());
                 return 0;
-            } else if (strcmp(arg, "ping") == 0) {  // TODO(isaac): remove
-                return gittor_service_ping();
             } else if (strcmp(arg, "run") == 0) {  // Hidden command
                 return gittor_service_run(false);
             } else {

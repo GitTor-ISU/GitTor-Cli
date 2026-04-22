@@ -14,7 +14,6 @@ typedef enum __attribute__((packed)) {
     /// @brief End the current connection
     SERVICE_END,
     SERVICE_ERROR,
-    SERVICE_PING,
     SEED_START,
     SEED_STOP,
 } type_e;

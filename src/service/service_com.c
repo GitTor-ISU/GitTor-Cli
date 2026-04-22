@@ -1,7 +1,6 @@
 #include <glib.h>
 #include <inttypes.h>
 #include <stdbool.h>
-#include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
 #include <gio/gio.h>
@@ -70,7 +69,7 @@ static GSocket* get_connection(bool auto_start, GError** error) {
     connect(s_socket, error);
 
     // If connected, return
-    if (!*error) {
+    if (!error || !*error) {
         return s_socket;
     } else if (!auto_start) {
         g_object_unref(s_socket);
@@ -245,26 +244,4 @@ extern const char* gittor_service_status() {
     }
 
     return up;
-}
-
-extern int gittor_service_ping() {
-    GError* error = NULL;
-    char ping[256];
-    packet_t msg = {.data = ping, .type = SERVICE_PING};
-    msg.len = g_snprintf(ping, sizeof(ping) - 1, "pid: %d thread: %p", getpid(),
-                         (void*)g_thread_self()) +
-              1;
-    packet_t* resp = gittor_service_send(&msg, &error);
-
-    if (error) {
-        free(resp);
-        g_printerr("Failed to ping service: %s\n", error->message);
-        g_clear_error(&error);
-        return 1;
-    }
-
-    printf("[GitTor CLI] Recieved: '%s'\n", (char*)resp->data);
-    free(resp->data);
-    free(resp);
-    return 0;
 }
