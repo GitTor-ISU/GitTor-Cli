@@ -1,6 +1,7 @@
 #include <chrono>
 #include <csignal>
 #include <deque>
+#include <errno.h>     // NOLINT(build/include_order)
 #include <filesystem>  // NOLINT(build/c++17)
 #include <fstream>
 #include <git2.h>  // NOLINT(build/include_order)
@@ -323,8 +324,8 @@ extern "C" gpointer handle_seeding(gpointer data) {
             switch (item->packet.type) {
                 case SEED_START: {
                     // Create the torrent file on disk
-                    gittor_remote_path(remote_dir, reinterpret_cast<git_oid*>(
-                                                       item->packet.data));
+                    gittor_remote_path(
+                        remote_dir, reinterpret_cast<char*>(item->packet.data));
                     create_torrent(remote_dir);
 
                     // Load the .torrent and add it to the session using a
@@ -357,8 +358,8 @@ extern "C" gpointer handle_seeding(gpointer data) {
                 }
 
                 case SEED_STOP: {
-                    gittor_remote_path(remote_dir, reinterpret_cast<git_oid*>(
-                                                       item->packet.data));
+                    gittor_remote_path(
+                        remote_dir, reinterpret_cast<char*>(item->packet.data));
                     const std::string torrent_path =
                         std::string(remote_dir) + ".torrent";
                     gchar* torrent_file = g_strdup(torrent_path.c_str());
@@ -447,4 +448,20 @@ extern "C" int create_torrent(char path[PATH_MAX]) try {
 } catch (std::exception& e) {
     std::cerr << "Error Creating Torrent: " << e.what() << '\n';
     return 1;
+}
+
+extern "C" int get_magnet_link(const char* torrent_path,
+                               char* out_magnet,
+                               size_t out_size) try {
+    if (!torrent_path || !out_magnet || !out_size) {
+        return EINVAL;
+    }
+
+    const lt::add_torrent_params atp = lt::load_torrent_file(torrent_path);
+    const std::string magnet = lt::make_magnet_uri(atp);
+
+    return g_strlcpy(out_magnet, magnet.c_str(), out_size) != magnet.length();
+} catch (std::exception& e) {
+    std::cerr << "Error Generating Magnet Link: " << e.what() << '\n';
+    return -1;
 }

@@ -107,6 +107,8 @@ extern int create_bare_repo(char url[FILE_URL_MAX]) {
         error = git_commit_create(&commit_oid, repo, "HEAD", me, me, "UTF-8",
                                   "init", tree, 0, NULL);
     }
+    char repo_id_str[GIT_OID_HEXSZ + 1] = {0};
+    git_oid_tostr(repo_id_str, sizeof(repo_id_str), &commit_oid);
 
     // Configure repo
     if (!error) {
@@ -122,7 +124,7 @@ extern int create_bare_repo(char url[FILE_URL_MAX]) {
     if (!error) {
         // Build the permanent path to the repo
         gchar remote_path[PATH_MAX];
-        gittor_remote_path(remote_path, &commit_oid);
+        gittor_remote_path(remote_path, repo_id_str);
 
         // Move repo to permanent path
         if (g_rename(tmp_remote_path, remote_path)) {

@@ -86,4 +86,16 @@ extern int bind_port_in_range(GSocketAddress** addr,
                               int start,
                               int end);
 
+/**
+ * @brief Generate a magnet link from a .torrent file
+ *
+ * @param torrent_path The path to the .torrent file
+ * @param out_magnet Buffer to store the generated magnet link
+ * @param out_size Size of the output buffer
+ * @return int 0 on success, non-zero on error
+ */
+extern int get_magnet_link(const char* torrent_path,
+                           char* out_magnet,
+                           size_t out_size);
+
 #endif  // SERVICE_SERVICE_INTERNALS_H_

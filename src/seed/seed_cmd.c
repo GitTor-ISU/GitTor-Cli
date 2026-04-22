@@ -1,6 +1,7 @@
 #include <assert.h>
 #include <git2.h>
 #include <glib.h>
+#include <limits.h>
 #include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -8,8 +9,14 @@
 #include "api/torrents.h"
 #include "cmd/cmd.h"
 #include "seed/seed.h"
-#include "seed/seed_internals.h"
+#include "service/service_internals.h"
 #include "utils/utils.h"
+
+#ifndef URL_MAX
+#define MAGNET_URI_MAX 8192
+#else
+#define MAGNET_URI_MAX (URL_MAX * 2)
+#endif
 
 #define KEY_USAGE 1
 
@@ -24,7 +31,7 @@ struct seed_arguments {
 static struct argp_option options[] = {
     {"help", '?', NULL, 0, "Give this help list", -2},
     {"usage", KEY_USAGE, NULL, 0, "Give a short usage message", -1},
-    {NULL}};
+    {NULL, 0, NULL, 0, NULL, 0}};
 
 static char doc[] = "Uploads and shares the current state of the repository.";
 
@@ -144,16 +151,14 @@ extern int gittor_seed(struct argp_state* state) {
     }
 
     // Get the repo ID
-    git_oid repo_id;
-    err = gittor_get_repo_id(&repo_id, repo);
+    char repo_id_str[GIT_OID_HEXSZ + 1] = {0};
+    err = gittor_get_repo_id(repo_id_str, sizeof(repo_id_str), repo);
     if (err) {
         goto end;
     }
-    char repo_id_str[GIT_OID_HEXSZ + 1];
-    git_oid_tostr(repo_id_str, sizeof(repo_id_str), &repo_id);
 
     // Tell the seeder service to stop seeding this
-    err = gittor_seed_stop(&repo_id);
+    err = gittor_seed_stop(repo_id_str);
     if (err) {
         goto end;
     }
@@ -165,14 +170,14 @@ extern int gittor_seed(struct argp_state* state) {
     }
 
     // Tell the seeder service to begin seeding this
-    err = gittor_seed_start(&repo_id);
+    err = gittor_seed_start(repo_id_str);
     if (err) {
         goto end;
     }
 
     // Get the path to the torrent file
     char torrent_file_path[PATH_MAX];
-    err = gittor_remote_path(torrent_file_path, &repo_id);
+    err = gittor_remote_path(torrent_file_path, repo_id_str);
     if (err) {
         goto end;
     }
@@ -209,6 +214,18 @@ extern int gittor_seed(struct argp_state* state) {
         err = result;
         g_printerr("Error (%d): Failed to communicate with API.\n", err);
     }
+
+    // Generate the magnet link from the torrent file
+    char magnet_link[MAGNET_URI_MAX] = {0};
+    err = get_magnet_link(torrent_file_path, magnet_link, sizeof(magnet_link));
+    if (err) {
+        g_printerr("Warning: Failed to generate magnet link.\n");
+    }
+
+    printf("Seeding Repository!\n");
+    printf("Repository ID: %s\n", repo_id_str);
+    printf("Torrent File: %s\n", torrent_file_path);
+    printf("Magnet Link: '%s'\n", magnet_link);
 
 end:
     if (err < 0) {

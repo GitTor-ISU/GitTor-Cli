@@ -10,6 +10,13 @@
 
 static GSocket* s_socket;
 
+static void reset_connection() {
+    if (G_IS_OBJECT(s_socket)) {
+        g_object_unref(s_socket);
+    }
+    s_socket = NULL;
+}
+
 /**
  * @brief Attempt to connect to the service
  *
@@ -55,14 +62,17 @@ static void connect(GSocket* socket, GError** error) {
 static GSocket* get_connection(bool auto_start, GError** error) {
     // Connection has already been established
     if (s_socket != NULL) {
-        return s_socket;
+        if (!g_socket_is_connected(s_socket)) {
+            reset_connection();
+        } else {
+            return s_socket;
+        }
     }
 
     s_socket = g_socket_new(G_SOCKET_FAMILY_IPV4, G_SOCKET_TYPE_STREAM,
                             G_SOCKET_PROTOCOL_TCP, error);
     if (error && *error) {
-        g_object_unref(s_socket);
-        s_socket = NULL;
+        reset_connection();
         return NULL;
     }
 
@@ -73,8 +83,7 @@ static GSocket* get_connection(bool auto_start, GError** error) {
     if (!*error) {
         return s_socket;
     } else if (!auto_start) {
-        g_object_unref(s_socket);
-        s_socket = NULL;
+        reset_connection();
         return NULL;
     }
 
@@ -89,8 +98,7 @@ static GSocket* get_connection(bool auto_start, GError** error) {
 
     // If connection fails again, throw error
     if (error && *error) {
-        g_object_unref(s_socket);
-        s_socket = NULL;
+        reset_connection();
         return NULL;
     }
 
@@ -104,56 +112,81 @@ extern packet_t* gittor_service_send(const packet_t* msg, GError** error) {
         return NULL;
     }
 
-    // Get connection to the service
-    GSocket* socket = get_connection(true, error);
-    if (error && *error) {
-        return NULL;
+    for (int attempt = 0; attempt < 2; attempt++) {
+        // Get connection to the service
+        GSocket* socket = get_connection(true, error);
+        if (error && *error) {
+            return NULL;
+        }
+
+        // Send the header
+        header_t header = {.magic = MAGIC, .type = msg->type, .len = msg->len};
+        g_socket_send(socket, (void*)&header, sizeof(header), NULL, error);
+        if (error && *error) {
+            if (attempt == 0) {
+                g_clear_error(error);
+                reset_connection();
+                continue;
+            }
+            return NULL;
+        }
+
+        // Send the data
+        g_socket_send(socket, (void*)msg->data, msg->len, NULL, error);
+        if (error && *error) {
+            if (attempt == 0) {
+                g_clear_error(error);
+                reset_connection();
+                continue;
+            }
+            return NULL;
+        }
+
+        // Recieve the header
+        g_socket_receive(socket, (void*)&header, sizeof(header), NULL, error);
+        if (error && *error) {
+            if (attempt == 0) {
+                g_clear_error(error);
+                reset_connection();
+                continue;
+            }
+            return NULL;
+        }
+
+        if (header.magic != MAGIC) {
+            g_set_error(error, g_quark_from_static_string(__func__), 2,
+                        "Received Incorrect Header Signiture: got '%" PRIx64
+                        "' expected '%" PRIx64 "'\n",
+                        header.magic, MAGIC);
+            return NULL;
+        }
+
+        packet_t* resp = (packet_t*)malloc(sizeof(*resp));
+        resp->type = header.type;
+        resp->len = header.len;
+        resp->data = NULL;
+
+        // Recieve the data
+        if (resp->len > 0) {
+            resp->data = (void*)malloc(header.len);
+            g_socket_receive(socket, resp->data, header.len, NULL, error);
+        }
+        if (error && *error) {
+            free(resp->data);
+            free(resp);
+
+            if (attempt == 0) {
+                g_clear_error(error);
+                reset_connection();
+                continue;
+            }
+            return NULL;
+        }
+
+        return resp;
     }
 
-    // Send the header
-    header_t header = {.magic = MAGIC, .type = msg->type, .len = msg->len};
-    g_socket_send(socket, (void*)&header, sizeof(header), NULL, error);
-    if (error && *error) {
-        return NULL;
-    }
-
-    // Send the data
-    g_socket_send(socket, (void*)msg->data, msg->len, NULL, error);
-    if (error && *error) {
-        return NULL;
-    }
-
-    // Recieve the header
-    g_socket_receive(socket, (void*)&header, sizeof(header), NULL, error);
-    if (error && *error) {
-        return NULL;
-    }
-
-    if (header.magic != MAGIC) {
-        g_set_error(error, g_quark_from_static_string(__func__), 2,
-                    "Received Incorrect Header Signiture: got '%" PRIx64
-                    "' expected '%" PRIx64 "'\n",
-                    header.magic, MAGIC);
-        return NULL;
-    }
-
-    packet_t* resp = (packet_t*)malloc(sizeof(*resp));
-    resp->type = header.type;
-    resp->len = header.len;
-    resp->data = NULL;
-
-    // Recieve the data
-    if (resp->len > 0) {
-        resp->data = (void*)malloc(header.len);
-        g_socket_receive(socket, resp->data, header.len, NULL, error);
-    }
-    if (error && *error) {
-        free(resp->data);
-        free(resp);
-        return NULL;
-    }
-
-    return resp;
+    return NULL;
 }
 
 extern int gittor_service_start() {
@@ -181,18 +214,14 @@ extern int gittor_service_stop() {
         // Kill the service
         header_t header = {.magic = MAGIC, .type = SERVICE_KILL, .len = -1};
         g_socket_send(socket, (void*)&header, sizeof(header), NULL, NULL);
-        g_object_unref(s_socket);
-        s_socket = NULL;
+        reset_connection();
         g_print("GitTor service stopped.\n");
     } else {
         g_clear_error(&error);
         g_print("GitTor service wasn't running.\n");
     }
 
-    if (G_IS_OBJECT(s_socket)) {
-        g_object_unref(s_socket);
-    }
-    s_socket = NULL;
+    reset_connection();
 
     // While port is greater than 0, wait
     int count = 0;
@@ -227,8 +256,7 @@ extern void gittor_service_disconnect() {
     // Tell the service the connection is over
     header_t header = {.magic = MAGIC, .type = SERVICE_END, .len = -1};
     g_socket_send(s_socket, (void*)&header, sizeof(header), NULL, NULL);
-    g_object_unref(s_socket);
-    s_socket = NULL;
+    reset_connection();
 }
 
 extern const char* gittor_service_status() {

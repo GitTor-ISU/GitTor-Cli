@@ -52,8 +52,12 @@ Module.symvers
 Mkfile.old
 dkms.conf
 
+# Clangd cache
+.cache/
+
 # Project specific
 obj/
 bin/
 site/
 .gittorconfig
+compile_commands.json

@@ -42,7 +42,7 @@ static const struct argp_option options[] = {
     {"path", 'p', "PATH", 0, "The path to the gittor repository", 0},
     {"help", '?', NULL, 0, "Give this help list", -2},
     {"usage", KEY_USAGE, NULL, 0, "Give a short usage message", -1},
-    {NULL}};
+    {NULL, 0, NULL, 0, NULL, 0}};
 
 static struct argp argp = {
     options, parse_opt, "COMMAND [ARGUMENTS...]", doc, NULL, NULL, NULL};

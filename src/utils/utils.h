@@ -11,7 +11,7 @@
  * @param repo Repository
  * @return int error code
  */
-extern int gittor_get_repo_id(git_oid* repo_id, git_repository* repo);
+extern int gittor_get_repo_id(char* repo_id, size_t n, git_repository* repo);
 
 /**
  * @brief Push the repository to the remote.
@@ -29,9 +29,9 @@ extern const char* gittor_remote_dir();
  * @brief Get the path to the repository's remote.
  *
  * @param buf Output buffer for the path to the repository's remote
- * @param repo_id Repository ID
+ * @param repo_id Repository ID (40-character hex string)
  * @return int error code
  */
-extern int gittor_remote_path(char buf[PATH_MAX], const git_oid* repo_id);
+extern int gittor_remote_path(char buf[PATH_MAX], const char* repo_id);
 
 #endif  // UTILS_UTILS_H_

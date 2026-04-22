@@ -13,7 +13,7 @@ struct devs_arguments {
     struct global_arguments* global;
 };
 
-static struct argp_option options[] = {{NULL}};
+static struct argp_option options[] = {{NULL, 0, NULL, 0, NULL, 0}};
 
 static char doc[] = "Manage who can contribute to this repository.";
 
