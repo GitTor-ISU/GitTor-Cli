@@ -41,7 +41,8 @@ RUN sudo apt install -y \
     libtorrent-rasterbar-dev \
     libglib2.0-dev \
     libgit2-dev \
-    libcurl4-openssl-dev
+    libcurl4-openssl-dev \
+    libjson-glib-dev
 
 RUN pipx ensurepath
 RUN pipx install cpplint && \

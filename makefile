@@ -4,7 +4,7 @@ CXX := g++
 CFLAGS := -Wall -Wextra -Werror
 DEV_FLAGS := -gdwarf-4 -g3
 COV_FLAGS := --coverage -O0
-MOCKS := MOCK_ADD MOCK_GITTOR_SERVICE_RUN
+MOCKS := MOCK_GITTOR_SERVICE_RUN
 
 # Directories
 SRC_DIR := src/
@@ -17,6 +17,7 @@ COV_DIR := coverage/
 TEST_DIR := test/
 TEST_INC_DIR := test/
 SITE_DIR := site/
+INSTALL_DIR ?= $(HOME)/.local/bin/
 
 # Paths
 ROOT := $(dir $(realpath $(firstword $(MAKEFILE_LIST))))
@@ -218,6 +219,13 @@ OUTS_TEST := $(foreach test,$(TEST_ENTS), \
 		) \
 	) \
 )
+INSTALLS := $(foreach out,$(OUTS_PROD), \
+	$(patsubst \
+		$(OUT_PROD_PATH)%, \
+		$(INSTALL_DIR)%, \
+		$(out) \
+	) \
+)
 
 # Objects without entry point
 OBJS_PROD_NONENTRY := $(filter-out \
@@ -337,7 +345,7 @@ endef
 endif
 
 # Default build target
-default: dev prod
+all: prod
 
 # Development build target
 dev: $(OUTS_DEV)
@@ -346,6 +354,19 @@ dev: $(OUTS_DEV)
 prod: $(OUTS_PROD)
 
 ifneq ($(OS),Windows_NT)
+# Install program
+install: $(INSTALLS)
+	@case ":$$PATH:" in \
+		*":$(INSTALL_DIR):"*) ;; \
+		*) printf "make: $(YELLOW)WARNING: $(INSTALL_DIR) is not in PATH for this shell.$(RESET)\n"; \
+		   printf 'make: Add it with: export PATH="$$PATH:$(INSTALL_DIR)"\n'; \
+		;; \
+	esac
+
+# Uninstall program
+uninstall:
+	@rm $(INSTALLS)
+
 # Test code with unity
 test: $(TEST_LOGS)
 	@PASS_COUNT=$$(grep -s ":PASS" $(TEST_LOGS) | wc -l); \
@@ -503,7 +524,7 @@ $(OUT_TEST_PATH)%.log: $(OUT_TEST_PATH)%
 
 # Report - Generate report
 $(SITE_PATH)index.html: $(TEST_LOGS)
-	$(call ensure-dir,$(SITE_PATH))
+	$(call ensure-dir,$@)
 	$(call print-file,$(call relpath,$@))
 	@gcovr \
 		--root $(ROOT) \
@@ -512,6 +533,14 @@ $(SITE_PATH)index.html: $(TEST_LOGS)
 		--html-syntax-highlighting --output $(SITE_PATH)/index.html \
 		--exclude-throw-branches
 
-.PHONY: clean default dev prod test report lint format
+ifneq ($(OS),Windows_NT)
+# Installation - Install production
+$(INSTALL_DIR)%: $(OUT_PROD_PATH)%
+	$(call ensure-dir,$@)
+	$(call print-file,$(call relpath,$@))
+	@install -m 755 $(patsubst $(INSTALL_DIR)%,$(OUT_PROD_PATH)%,$@) $@
+endif
+
+.PHONY: clean all install uninstall dev prod test report lint format
 
 .PRECIOUS: $(OBJS_PROD) $(OBJS_DEV) $(OBJS_TEST) $(OUTS_TEST) $(OBJS_COV)
