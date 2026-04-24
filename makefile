@@ -357,9 +357,9 @@ ifneq ($(OS),Windows_NT)
 # Install program
 install: $(INSTALLS)
 	@case ":$$PATH:" in \
-		*":$(INSTALL_DIR):"*) ;; \
-		*) printf "make: $(YELLOW)WARNING: $(INSTALL_DIR) is not in PATH for this shell.$(RESET)\n"; \
-		   printf 'make: Add it with: export PATH="$$PATH:$(INSTALL_DIR)"\n'; \
+		*":$(patsubst %/,%,$(INSTALL_DIR)):"*) ;; \
+		*) printf "make: $(YELLOW)WARNING: $(patsubst %/,%,$(INSTALL_DIR)) is not in PATH for this shell.$(RESET)\n"; \
+		   printf 'make: Add it with: export PATH="$$PATH:$(patsubst %/,%,$(INSTALL_DIR))"\n'; \
 		;; \
 	esac
 
