@@ -101,7 +101,7 @@ If you are encountering any issues installing GitTor on your system, please refe
 
 ### Windows
 
-To install GitTor on Windows, download the binary from the most recent build artifact. Extract this archive to a location on your system where you won't delete it, and add its path to your PATH environment variable. There are many tutorials online that can show how to edit your PATH environment variables.
+To install GitTor on Windows, download the binary from the most recent build artifact [here](https://gittor-isu.github.io/GitTor-Cli/gittor-exe.zip). Extract this archive to a location on your system where you won't delete it, and add its path to your PATH environment variable. There are many tutorials online that can show how to edit your PATH environment variables.
 
 From there, you should be able to call GitTor directly without any issues.
 

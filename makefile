@@ -529,7 +529,8 @@ $(SITE_PATH)index.html: $(TEST_LOGS)
 	@gcovr \
 		--root $(ROOT) \
 		--sort uncovered-percent \
-		--html --html-nested --html-theme github.dark-green \
+		--html --html-nested --html-title "GCC Code Coverage Report" \
+		--html-template-dir template/ --html-theme github.dark-green \
 		--html-syntax-highlighting --output $(SITE_PATH)/index.html \
 		--exclude-throw-branches
 

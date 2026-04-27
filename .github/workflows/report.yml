@@ -21,9 +21,32 @@ jobs:
           packages: libtorrent-rasterbar-dev libglib2.0-dev libgit2-dev libcurl4-openssl-dev libjson-glib-dev valgrind gcovr clang-tidy
           version: 1.0
 
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.14"
+
+      - name: Cache pip
+        uses: actions/cache@v3
+        with:
+          path: ~/.cache/pip
+          key: cpplint-cache-${{ hashFiles('requirements.txt') }}
+
+      - name: Install packages
+        run: pip install -r requirements.txt
+
       - name: Make Report
         run: |
           make report
+
+      - name: Download Windows Executable
+        uses: actions/download-artifact@v4
+        with:
+          name: gittor-exe
+          path: ./gittor-exe
+
+      - name: Zip Windows Executable
+        run: |
+          zip -r ./site/gittor-exe.zip ./gittor-exe
 
       - name: Setup Pages
         uses: actions/configure-pages@v5
