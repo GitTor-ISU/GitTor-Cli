@@ -11,5 +11,5 @@ insert_final_newline = true
 [makefile]
 indent_style = tab
 
-[{.github/workflows/*.yml,docs/report/*,.clang-format,.clang-tidy}]
+[{.github/workflows/*.yml,docs/report/*,.clang-format,.clang-tidy,template/*}]
 indent_size = 2
