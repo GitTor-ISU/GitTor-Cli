@@ -4,12 +4,11 @@
 }
 
 a:link {
-  color: navy;
-  text-decoration: underline;
+  color: var(--color-accent-fg);
+  text-decoration: none;
 }
 
-a:visited {
-  color: maroon;
+a:link:hover {
   text-decoration: underline;
 }
 
